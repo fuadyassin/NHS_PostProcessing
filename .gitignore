@@ -17,3 +17,9 @@ docs/build/
 TEST.py
 postprocessinglib/config.cfg
 LineUncerCCPlotFlow 1.ipynb
+venv/
+grand_canada_dams_3d_effect_contrast.gif
+grand_canada_dams_with_provinces.gif
+grand_dams_animation.ipynb
+grand_dams_colored_bold.gif
+Analysis.ipynb
