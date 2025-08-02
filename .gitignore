@@ -28,4 +28,6 @@ postprocessinglib/forecast/ehps.ipynb
 postprocessinglib/forecast/nsrps_model_LOTW_stn_locs.json
 postprocessinglib/forecast/nsrps_model_stn_locs.json
 postprocessinglib/forecast/todo.txt
-
+grand*
+venv/
+Analysis.ipynb
