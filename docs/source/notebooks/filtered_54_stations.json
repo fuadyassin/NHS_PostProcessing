@@ -1,0 +1,499 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": "05AA024.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -113.8259,
+                    49.5563
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05AA024.DHPS-3.4.0",
+                "STATION_NUMBER": "05AA024",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05AC003.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -113.1178,
+                    50.1397
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05AC003.DHPS-3.4.0",
+                "STATION_NUMBER": "05AC003",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05AD007.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -112.8678,
+                    49.7146
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05AD007.DHPS-3.4.0",
+                "STATION_NUMBER": "05AD007",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05AG006.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -111.7926,
+                    49.9224
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05AG006.DHPS-3.4.0",
+                "STATION_NUMBER": "05AG006",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05AJ001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -110.6758,
+                    50.0481
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05AJ001.DHPS-3.4.0",
+                "STATION_NUMBER": "05AJ001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05BB001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -115.5675,
+                    51.1731
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05BB001.DHPS-3.4.0",
+                "STATION_NUMBER": "05BB001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05BG010.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -114.9264,
+                    51.2721
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05BG010.DHPS-3.4.0",
+                "STATION_NUMBER": "05BG010",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05BH004.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -114.0509,
+                    51.0562
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05BH004.DHPS-3.4.0",
+                "STATION_NUMBER": "05BH004",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05BL024.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -113.8175,
+                    50.7894
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05BL024.DHPS-3.4.0",
+                "STATION_NUMBER": "05BL024",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05BN012.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -111.5931,
+                    50.0481
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05BN012.DHPS-3.4.0",
+                "STATION_NUMBER": "05BN012",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05CA009.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -115.0179,
+                    51.6479
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05CA009.DHPS-3.4.0",
+                "STATION_NUMBER": "05CA009",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05CB001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -114.1427,
+                    52.0311
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05CB001.DHPS-3.4.0",
+                "STATION_NUMBER": "05CB001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05CC002.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -113.8092,
+                    52.2814
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05CC002.DHPS-3.4.0",
+                "STATION_NUMBER": "05CC002",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05CE001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -112.7093,
+                    51.4734
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05CE001.DHPS-3.4.0",
+                "STATION_NUMBER": "05CE001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05CK004.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -110.3008,
+                    50.9147
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05CK004.DHPS-3.4.0",
+                "STATION_NUMBER": "05CK004",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05DB006.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -114.8456,
+                    52.244
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05DB006.DHPS-3.4.0",
+                "STATION_NUMBER": "05DB006",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05DC001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -114.9345,
+                    52.3813
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05DC001.DHPS-3.4.0",
+                "STATION_NUMBER": "05DC001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05DF001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -113.4844,
+                    53.5393
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05DF001.DHPS-3.4.0",
+                "STATION_NUMBER": "05DF001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05EF001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -109.6179,
+                    53.5312
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05EF001.DHPS-3.4.0",
+                "STATION_NUMBER": "05EF001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05FA001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -113.5845,
+                    52.6641
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05FA001.DHPS-3.4.0",
+                "STATION_NUMBER": "05FA001",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05FE004.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -110.0181,
+                    52.8556
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05FE004.DHPS-3.4.0",
+                "STATION_NUMBER": "05FE004",
+                "PROVIDER": "AEP",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05GG001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -105.7676,
+                    53.2059
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05GG001.DHPS-3.4.0",
+                "STATION_NUMBER": "05GG001",
+                "PROVIDER": "ECCC",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05HD039.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -107.6598,
+                    50.4981
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05HD039.DHPS-3.4.0",
+                "STATION_NUMBER": "05HD039",
+                "PROVIDER": "ECCC",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05HG001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -106.6432,
+                    52.1394
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05HG001.DHPS-3.4.0",
+                "STATION_NUMBER": "05HG001",
+                "PROVIDER": "ECCC",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05KD003.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -103.3013,
+                    53.7062
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05KD003.DHPS-3.4.0",
+                "STATION_NUMBER": "05KD003",
+                "PROVIDER": "ECCC",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        },
+        {
+            "id": "05KJ001.DHPS-3.4.0",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -101.2094,
+                    53.8389
+                ]
+            },
+            "properties": {
+                "IDENTIFIER": "05KJ001.DHPS-3.4.0",
+                "STATION_NUMBER": "05KJ001",
+                "PROVIDER": "ECCC",
+                "PREDICTION_SYSTEM_SHORT_NAME": "DHPS",
+                "PREDICTION_SYSTEM_LONG_NAME": "Deterministic Hydrological Prediction System",
+                "PREDICTION_SYSTEM_VERSION": "3.4.0"
+            }
+        }
+    ]
+}

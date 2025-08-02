@@ -20,3 +20,12 @@ docs/build/
 TEST.py
 postprocessinglib/config.cfg
 LineUncerCCPlotFlow 1.ipynb
+postprocessinglib/forecast/NSRPS_PRED/
+postprocessinglib/forecast/FavHydatStationsM.tb0
+docs/source/notebooks/CaSRv2p1_CAMEL-spat_MESH_output_streamflow.csv
+docs/source/notebooks/CaSRv3p1_CAMEL-spat_MESH_output_streamflow.csv
+postprocessinglib/forecast/ehps.ipynb
+postprocessinglib/forecast/nsrps_model_LOTW_stn_locs.json
+postprocessinglib/forecast/nsrps_model_stn_locs.json
+postprocessinglib/forecast/todo.txt
+

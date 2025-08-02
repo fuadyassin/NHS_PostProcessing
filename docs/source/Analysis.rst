@@ -1,6 +1,8 @@
 Analysis
 ========
 
+Streamflow Analysis
+-------------------
 This section runs us through performing an analysis of streamflow data for various stations over three different periods: 1990-2010, 2026-2055, and 2071-2100. 
 The analysis includes calculating and visualizing the minimum, maximum, and median streamflow values for each period. 
 Additionally, key hydrological metrics such as the Time to Center of Mass (TtCoM), Time to Peak (TtP), and Spring Pulse Onset are computed for each period. 
@@ -37,7 +39,7 @@ Steps:
 .. toctree::
    :maxdepth: 1
 
-   notebooks/Analysis.ipynb
+   notebooks/Streamflow_Analysis.ipynb
 
 
 This section shows the steps involved with processing streamflow data for multiple stations over three distinct periods. 
@@ -45,4 +47,21 @@ The data is aggregated by Julian date to compute the mean streamflow for each da
 Key hydrological metrics (TtCoM, TtP, Spring Pulse Onset) are computed for the median values. The results are visualized using filled plots to highlight variability and central tendency, with annotations showing the calculated metrics and their differences relative to the baseline period.
 
 
-If you have any comments, please reach out to Uchechukwu UDENZE at uchechukwu.udenze@ec.gc.ca or Fuad Yassin at fuad.yassin@ec.gc.ca.
+Forecast_Analysis
+-----------------
+
+.. toctree::
+   :maxdepth: 1
+
+   notebooks/Forecast_Analysis.ipynb
+
+
+
+Multimodel_Analysis
+-------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   notebooks/Multimodel_Analysis.ipynb
+If you have any comments, please reach out to Uchechukwu UDENZE at uchechukwu.udenze@ec.gc.ca or Fuad Yassin at fuad.yassin@usask.ca.

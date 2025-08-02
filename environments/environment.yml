@@ -13,3 +13,6 @@ dependencies:
   - scipy
   - openpyxl
   - natsort
+  - owslib
+  - pip:
+    - git+https://github.com/MESH-Model/MESH-Scripts-PyLib.git

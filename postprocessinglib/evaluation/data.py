@@ -218,7 +218,9 @@ def long_term_seasonal(df: pd.DataFrame, method: str= 'mean')-> pd.DataFrame:
                                                 names=('year', 'jday'))
 
         # Making a pattern to check with
-        pattern = r'^[qQ]\d{2}(\.\d{1,2})?$' 
+        # pattern = r'^[qQ]\d{2}(\.\d{1,2})?$'
+        pattern = r'^[qQ](\d{1,2}(\.\d+)?|100(\.0*)?)$'
+ 
         
         if method == 'mean': 
             df_copy = df_copy.groupby(level = 'jday').mean()
