@@ -1421,11 +1421,47 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
             df = func(*parameters)
 
         if isinstance(df.columns, pd.MultiIndex):
+            # Ensure level names exist
+            lvl_names = list(df.columns.names or ["metric", "model"])
+            if len(lvl_names) < 2:
+                lvl_names = ["metric", "model"]
+
+            # Fix duplicated 'model' labels only for KGE(+components)
+            if name in ("KGE", "KGE 2012") and bool(opts.get("return_kge_components", False)):
+                # Identify which level is 'metric' and 'model'
+                metric_level = lvl_names.index("metric") if "metric" in lvl_names else 0
+                model_level  = lvl_names.index("model")  if "model"  in lvl_names else 1
+
+                # Build model labels from the actual simulated list length
+                n_models = len(simulated)
+                models_from_input = [f"model{i+1}" for i in range(n_models)]
+
+                # Rebuild per metric/component block and assign proper model names
+                uniq_metrics = list(df.columns.get_level_values(metric_level).unique())
+                blocks = []
+                for met_name in uniq_metrics:
+                    block = df.xs(met_name, level=metric_level, axis=1).copy()
+                    # Set model names up to actual number of columns in this block
+                    new_cols = models_from_input[: block.shape[1]]
+                    block.columns = new_cols
+                    block.columns = pd.MultiIndex.from_product(
+                        [[met_name], new_cols],
+                        names=["metric", "model"]
+                    )
+                    blocks.append(block)
+
+                df = pd.concat(blocks, axis=1)
+
+            # Append (either normalized KGE+components, or untouched for other metrics)
             metric_dfs.append(df)
+
         else:
+            # Scalar metrics: wrap to (metric, model/station) like before, but add names
             df = df.copy()
-            df.columns = pd.MultiIndex.from_product([[name], df.columns])
+            df.columns = pd.MultiIndex.from_product([[name], df.columns],
+                                                    names=["metric", df.columns.name or "model"])
             metric_dfs.append(df)
+
 
     # obs-only single-DF metrics
     single_obs_metrics = {
@@ -1571,19 +1607,35 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
             opts = _opt_for(metric)
             for idx, (obs, sim, st) in enumerate(parameters_list):
                 # Only pass return_kge_components to KGE flavors
-                if metric_lower in ["kge", "kge 2012"] and "return_kge_components" in opts:
-                    result = metric_funcs[metric_lower](obs, sim, st, return_kge_components=bool(opts["return_kge_components"]))
+                if metric_lower in ["kge", "kge 2012"] and bool(opts.get("return_kge_components", False)):
+                    result = metric_funcs[metric_lower](obs, sim, st, return_kge_components=True)
+                    model_name = f"model{idx+1}"
+
+                    # KGE components return a MultiIndex (metric, model) but often with 'model1' hardcoded.
+                    # Normalize the second level to the correct model name.
+                    if isinstance(result.columns, pd.MultiIndex):
+                        lvl0 = result.columns.get_level_values(0)
+                        result = result.copy()
+                        result.columns = pd.MultiIndex.from_arrays(
+                            [lvl0, [model_name] * len(lvl0)],
+                            names=['metric', 'model']
+                        )
+                        metric_dfs.append(result)
+                        continue  # done for this model; proceed to next
+                    # If somehow not MultiIndex, fall through to wrap like other metrics below
                 else:
                     result = metric_funcs[metric_lower](obs, sim, st)
 
                 model_name = f"model{idx+1}"
-
-                # If result already has MultiIndex (components), append as-is
-                if isinstance(result.columns, pd.MultiIndex):
-                    metric_dfs.append(result)
+                df = result.copy()
+                if isinstance(df.columns, pd.MultiIndex):
+                    # For non-KGE metrics that might return MultiIndex already, keep as-is
+                    metric_dfs.append(df)
                 else:
-                    df = result.copy()
-                    df.columns = pd.MultiIndex.from_product([[metric.upper()], [model_name]])
+                    df.columns = pd.MultiIndex.from_product(
+                        [[metric.upper()], [model_name]],
+                        names=['metric', 'model']
+                    )
                     metric_dfs.append(df)
 
         elif metric_lower in ["ttp_obs", "ttcom_obs", "spod_obs", "fdc_obs"]:
