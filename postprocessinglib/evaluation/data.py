@@ -867,37 +867,65 @@ def yearly_aggregate(df: pd.DataFrame, method: str="mean") -> pd.DataFrame:
     `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-data-manipulation.ipynb>`_
 
     """
-    # Check that there is a chosen method else return error
-    if not method:
-        raise RuntimeError("ERROR: A method of aggregation is required")
-    else:
-        # Making a copy to avoid changing the original df
-        df_copy = df.copy()
+    # # Check that there is a chosen method else return error
+    # if not method:
+    #     raise RuntimeError("ERROR: A method of aggregation is required")
+    # else:
+    #     # Making a copy to avoid changing the original df
+    #     df_copy = df.copy()
         
-        if method == "sum":
-            yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).sum()
-        elif method == "mean":
-            yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).mean()
-        elif method == "median":
-            yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).median()
-        elif method == "min":
-            yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).min()
-        elif method == "max":
-            yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).max()
-        elif method == "inst":
-            yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).last()
-        else:
-            raise ValueError(f"Unsupported aggregation method: {method}")
+    #     if method == "sum":
+    #         yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).sum()
+    #     elif method == "mean":
+    #         yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).mean()
+    #     elif method == "median":
+    #         yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).median()
+    #     elif method == "min":
+    #         yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).min()
+    #     elif method == "max":
+    #         yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).max()
+    #     elif method == "inst":
+    #         yearly_aggr = df_copy.groupby(df_copy.index.strftime("%Y-%m")).last()
+    #     else:
+    #         raise ValueError(f"Unsupported aggregation method: {method}")
   
     
-    return yearly_aggr  
+    # return yearly_aggr  
+    if not method:
+        raise RuntimeError("ERROR: A method of aggregation is required")
+    df_copy = df.copy()
 
+    grp = df_copy.index.strftime("%Y")  # <-- FIX: year only
+
+    if method == "sum":
+        yearly_aggr = df_copy.groupby(grp).sum()
+    elif method == "mean":
+        yearly_aggr = df_copy.groupby(grp).mean()
+    elif method == "median":
+        yearly_aggr = df_copy.groupby(grp).median()
+    elif method == "min":
+        yearly_aggr = df_copy.groupby(grp).min()
+    elif method == "max":
+        yearly_aggr = df_copy.groupby(grp).max()
+    elif method == "inst":
+        yearly_aggr = df_copy.groupby(grp).last()
+    else:
+        raise ValueError(f"Unsupported aggregation method: {method}")
+
+    # (Optional tiny nicety; keep if you want integer year index)
+    yearly_aggr.index = yearly_aggr.index.astype(int)
+
+    return yearly_aggr
 
 def generate_dataframes(csv_fpaths: list=None, sim_fpaths: list = None, obs_fpath: str = '', warm_up: int = 0, start_date: str = "", end_date: str = "",
                         daily_agg: bool = False, da_method: str = "", weekly_agg: bool = False, wa_method: str = "",
                         monthly_agg: bool = False, ma_method: str = "", yearly_agg: bool = False, ya_method: str = "",
                         seasonal_p: bool = False, sp_dperiod: tuple[str, str] = [], sp_subset: tuple[str, str] = None,
-                        long_term: bool = False, lt_method=None, stat_agg: bool = False, stat_method: str=None) -> dict[str, pd.DataFrame]:
+                        long_term: bool = False, lt_method=None, stat_agg: bool = False, stat_method: str=None,
+                        keep_stations: list[str] | None = None,   # NEW
+                        drop_stations: list[str] | None = None,   # NEW
+                        keep_numbers: list[int] | None = None,    # NEW (for QOMEAS1/QOSIM1 style)
+                        drop_numbers: list[int] | None = None) -> dict[str, pd.DataFrame]:
     """ 
     Function to Generate the required dataframes
 
@@ -1008,10 +1036,75 @@ def generate_dataframes(csv_fpaths: list=None, sim_fpaths: list = None, obs_fpat
                                [sim.iloc[:, [j]] for sim in sim_dfs], axis=1)
         merged.columns = hlp.columns_to_MultiIndex(merged.columns)
         return merged
-    
+    import re
+
+    def _detect_scheme(df: pd.DataFrame) -> str:
+        cols = [str(c).strip() for c in df.columns]
+        has_numeric = any(re.match(r'^QOMEAS\s*\d+$', c) for c in cols) and any(re.match(r'^QOSIM\s*\d+$', c) for c in cols)
+        has_station = any((c.startswith('QOMEAS') or c.startswith('QOSIM')) and '_' in c for c in cols)
+        if has_numeric and not has_station:
+            return 'number'
+        if has_station and not has_numeric:
+            return 'station'
+        # mixed/ambiguous → prefer station if underscores are common
+        return 'station' if sum('_' in c for c in cols) >= sum(re.match(r'^QO(?:MEAS|SIM)\s*\d+$', c) is not None for c in cols) else 'number'
+
+    def _extract_id(col: str, scheme: str):
+        c = str(col).strip()
+        if scheme == 'number':
+            m = re.match(r'^QO(?:MEAS|SIM)\s*([0-9]+)$', c)
+            if m: return int(m.group(1))
+            m2 = re.search(r'(\d+)$', c)
+            return int(m2.group(1)) if m2 else None
+        # station scheme
+        return c.split('_')[-1] if '_' in c else None
+
+    def _filter_any(df: pd.DataFrame,
+                    keep_stations=None, drop_stations=None,
+                    keep_numbers=None,  drop_numbers=None) -> pd.DataFrame:
+        """Filter columns for either station-coded or numeric-indexed layouts."""
+        if not (keep_stations or drop_stations or keep_numbers or drop_numbers):
+            return df  # nothing to do
+
+        scheme = _detect_scheme(df)
+        cols = list(df.columns)
+        ids  = [_extract_id(c, scheme) for c in cols]
+
+        if scheme == 'number':
+            if keep_numbers is not None and drop_numbers is not None:
+                raise ValueError("Provide only keep_numbers or drop_numbers, not both.")
+            if keep_numbers is not None:
+                keep = set(int(x) for x in keep_numbers)
+                mask = [i in keep for i in ids]
+                return df.loc[:, mask]
+            if drop_numbers is not None:
+                drop = set(int(x) for x in drop_numbers)
+                mask = [i not in drop for i in ids]
+                return df.loc[:, mask]
+            # ignore station lists for numeric files
+            return df
+
+        # station scheme
+        if keep_stations is not None and drop_stations is not None:
+            raise ValueError("Provide only keep_stations or drop_stations, not both.")
+        if keep_stations is not None:
+            keep = set(map(str, keep_stations))
+            mask = [i in keep for i in ids]
+            return df.loc[:, mask]
+        if drop_stations is not None:
+            drop = set(map(str, drop_stations))
+            mask = [i not in drop for i in ids]
+            return df.loc[:, mask]
+        return df
     def _read_and_process_csv(path, is_sim=False):
         df = pd.read_csv(path, skipinitialspace=True, index_col=[0, 1])
-        df.drop(columns=df.columns[-1], inplace=True) if len(df.columns) % 2 != 0 else None
+        # normalize headers (your samples have leading spaces)
+        df.columns = df.columns.map(lambda c: str(c).strip())
+
+        # if odd count, last column is often a trailing blank or mismatch → drop it
+        if len(df.columns) % 2 != 0:
+            df.drop(columns=df.columns[-1], inplace=True)
+
         start_day = hlp.MultiIndex_to_datetime(df.index[0])
         df.index = pd.date_range(start=start_day, periods=len(df), freq='D')
         return df.replace([-1, 0], np.nan)
@@ -1025,6 +1118,7 @@ def generate_dataframes(csv_fpaths: list=None, sim_fpaths: list = None, obs_fpat
         for i, path in enumerate(csv_fpaths):
             df = _read_and_process_csv(path)
             df = df.iloc[warm_up:]
+            df = _filter_any(df, keep_stations, drop_stations, keep_numbers, drop_numbers)
             key = "DF" if len(csv_fpaths) == 1 else f"DF_{i+1}"
             DATAFRAMES[key] = df
 
@@ -1047,13 +1141,21 @@ def generate_dataframes(csv_fpaths: list=None, sim_fpaths: list = None, obs_fpat
     elif sim_fpaths:
         if isinstance(sim_fpaths, str):
             sim_fpaths = [sim_fpaths]
-        sim_dfs = [_read_and_process_csv(path, is_sim=True) for path in sim_fpaths]
+        sim_dfs = [
+            _filter_any(
+                _read_and_process_csv(path, is_sim=True).iloc[warm_up:],
+                keep_stations=keep_stations, drop_stations=drop_stations,
+                keep_numbers=keep_numbers,   drop_numbers=drop_numbers
+            )
+            for path in sim_fpaths
+        ]
         for i, sim_df in enumerate(sim_dfs):
             DATAFRAMES[f"DF_SIMULATED_{i+1}"] = sim_df
 
         if obs_fpath:
             obs = _read_and_process_csv(obs_fpath)
             obs = obs.iloc[warm_up:]
+            obs = _filter_any(obs, keep_stations, drop_stations, keep_numbers, drop_numbers)  
             DATAFRAMES["DF_OBSERVED"] = obs
             for i, sim_df in enumerate(sim_dfs):
                 df = pd.concat([obs.iloc[:, [j]] for j in range(obs.shape[1])] +
