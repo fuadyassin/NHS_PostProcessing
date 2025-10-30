@@ -46,8 +46,31 @@ This section shows the steps involved with processing streamflow data for multip
 The data is aggregated by Julian date to compute the mean streamflow for each day of the year. The minimum, maximum, and median streamflow values are calculated for each station and period. 
 Key hydrological metrics (TtCoM, TtP, Spring Pulse Onset) are computed for the median values. The results are visualized using filled plots to highlight variability and central tendency, with annotations showing the calculated metrics and their differences relative to the baseline period.
 
+Single Model Analysis
+----------------------
 
-Forecast_Analysis
+.. toctree::
+   :maxdepth: 1
+
+   notebooks/Single-Model-Analysis.ipynb
+
+
+This section provides a comprehensive guide to performing a single model analysis using the `postprocessinglib` library.
+The analysis focuses on evaluating the performance of a single hydrological model across multiple stations and periods.
+
+Multimodel Analysis
+-------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   notebooks/Multi-Model-Analysis.ipynb
+
+This section provides a comprehensive guide to performing a multimodel analysis using the `postprocessinglib` library.
+The analysis focuses on evaluating the performance of multiple hydrological models across various stations and periods.
+
+
+Forecast Analysis
 -----------------
 
 .. toctree::
@@ -55,13 +78,8 @@ Forecast_Analysis
 
    notebooks/Forecast_Analysis.ipynb
 
+This section provides a comprehensive guide to performing a forecast analysis using the `postprocessinglib` library.
+The analysis focuses on evaluating the performance of forecasted streamflow data across multiple stations and periods.
 
 
-Multimodel_Analysis
--------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   notebooks/Multimodel_Analysis.ipynb
-If you have any comments, please reach out to Uchechukwu UDENZE at uchechukwu.udenze@ec.gc.ca or Fuad Yassin at fuad.yassin@usask.ca.
+If you have any comments, please reach out to Uchechukwu UDENZE at uchechukwu.udenze@ec.gc.ca or Fuad Yassin at fuad.yassin@ec.gc.ca.

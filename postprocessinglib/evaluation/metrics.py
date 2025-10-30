@@ -515,7 +515,7 @@ def lognse(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFr
 
 
 def kge(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame]],
-            stations: list[int]=[], scale: list[float]=[1. ,1. ,1.]) -> float:
+            stations: list[int]=[], scale: list[float]=[1. ,1. ,1.], return_kge_components: bool = False) -> pd.DataFrame:
     """ Calculates the Kling-Gupta Efficiency of the data
 
     Parameters
@@ -530,7 +530,10 @@ def kge(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
     scale: list[float, float, float]
             Scale factor for correlation[0], alpha[1], and beta[2] components 
             in the calculation of KGE
-
+    return_kge_components : bool, default False
+        If True, returns a MultiIndex DataFrame with (KGE, r, alpha, beta) x (model#).
+        If False, returns the original KGE-only DataFrame (backward compatible).
+        
     Returns
     -------
     pd.DataFrame:
@@ -585,7 +588,12 @@ def kge(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
 
     stations_to_process = [s - 1 for s in stations] if stations else list(range(observed.shape[1]))
     kge_results = {}
-
+    # Component mode containers
+    if return_kge_components:
+        rows = []
+        station_names = []
+        metrics_top = ["KGE", "r", "alpha", "beta"]
+        model_names = [f"model{i+1}" for i in range(len(simulated))]
     for j in stations_to_process:
         valid_observed = hlp.filter_valid_data(observed, station_num=j)
         obs_values = valid_observed.iloc[:, j]
@@ -593,6 +601,7 @@ def kge(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
         std_obs = obs_values.std(ddof=1)
 
         station_kge = {}
+        row = {} if return_kge_components else None
         for k, sim in enumerate(simulated):
             sim_values = sim.loc[valid_observed.index].iloc[:, j]
             mean_sim = sim_values.mean()
@@ -610,15 +619,36 @@ def kge(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
                 (scale[1] * (a - 1)) ** 2 +
                 (scale[2] * (b - 1)) ** 2
             )
-            station_kge[f"model{k+1}"] = hlp.sig_figs(kge_val, 4)
+            model_key = f"model{k+1}"
+            station_kge[model_key] = hlp.sig_figs(kge_val, 4)
+            if return_kge_components:
+                row[("KGE",   model_key)] = hlp.sig_figs(kge_val, 4)
+                row[("r",     model_key)] = hlp.sig_figs(r, 4)
+                row[("alpha", model_key)] = hlp.sig_figs(a, 4)
+                row[("beta",  model_key)] = hlp.sig_figs(b, 4)
 
         kge_results[f"Station {j+1}"] = station_kge
+        
+        if return_kge_components:
+            # Ensure all tuples present
+            for m in metrics_top:
+                for mod in model_names:
+                    row.setdefault((m, mod), np.nan)
+            rows.append(row)
+            station_names.append(f"Station {j+1}")
+            
+    if not return_kge_components:
+        return pd.DataFrame(kge_results).T
 
-    return pd.DataFrame(kge_results).T
+    # Build multiindex columns
+    multi_cols = pd.MultiIndex.from_tuples(list(rows[0].keys()), names=["metric", "model"]) if rows else \
+                 pd.MultiIndex.from_product([["KGE", "r", "alpha", "beta"], [f"model{i+1}" for i in range(len(simulated))]],
+                                            names=["metric", "model"])
+    return pd.DataFrame(rows, index=station_names, columns=multi_cols)
 
 
 def kge_2012(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame]],
-             stations: list[int]=[], scale: list[float]=[1. ,1. ,1.]) -> float:
+             stations: list[int]=[], scale: list[float]=[1. ,1. ,1.], return_kge_components: bool = False) -> pd.DataFrame:
     """ Calculates the Kling-Gupta Efficiency of the data
 
     Parameters
@@ -633,7 +663,10 @@ def kge_2012(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.Data
     scale: list[float, float, float]
             Scale factor for correlation[0], alpha[1], and beta[2] components 
             in the calculation of KGE
-
+    return_kge_components : bool, default False
+        If True, returns a MultiIndex DataFrame with (KGE, r, alpha, beta) x (model#).
+        If False, returns the original KGE-only DataFrame (backward compatible).
+        
     Returns
     -------
     pd.DataFrame:
@@ -694,6 +727,12 @@ def kge_2012(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.Data
     stations_to_process = [s - 1 for s in stations] if stations else list(range(observed.shape[1]))
     kge_results = {}
 
+    if return_kge_components:
+        rows = []
+        station_names = []
+        metrics_top = ["KGE", "r", "alpha", "beta"]
+        model_names = [f"model{i+1}" for i in range(len(simulated))]
+        
     for j in stations_to_process:
         valid_observed = hlp.filter_valid_data(observed, station_num=j)
         obs_values = valid_observed.iloc[:, j]
@@ -701,6 +740,8 @@ def kge_2012(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.Data
         std_obs = obs_values.std(ddof=1)
 
         station_kge = {}
+        row = {} if return_kge_components else None
+        
         for k, sim in enumerate(simulated):
             sim_values = sim.loc[valid_observed.index].iloc[:, j]
             mean_sim = sim_values.mean()
@@ -718,11 +759,31 @@ def kge_2012(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.Data
                 (scale[1] * (a - 1)) ** 2 +
                 (scale[2] * (b - 1)) ** 2
             )
-            station_kge[f"model{k+1}"] = hlp.sig_figs(kge_val, 4)
+            model_key = f"model{k+1}"
+            station_kge[model_key] = hlp.sig_figs(kge_val, 4)
+
+            if return_kge_components:
+                row[("KGE",   model_key)] = hlp.sig_figs(kge_val, 4)
+                row[("r",     model_key)] = hlp.sig_figs(r, 4)
+                row[("alpha", model_key)] = hlp.sig_figs(a, 4)
+                row[("beta",  model_key)] = hlp.sig_figs(b, 4)
 
         kge_results[f"Station {j+1}"] = station_kge
 
-    return pd.DataFrame(kge_results).T
+        if return_kge_components:
+            for m in metrics_top:
+                for mod in model_names:
+                    row.setdefault((m, mod), np.nan)
+            rows.append(row)
+            station_names.append(f"Station {j+1}")
+
+    if not return_kge_components:
+        return pd.DataFrame(kge_results).T
+
+    multi_cols = pd.MultiIndex.from_tuples(list(rows[0].keys()), names=["metric", "model"]) if rows else \
+                 pd.MultiIndex.from_product([["KGE", "r", "alpha", "beta"], [f"model{i+1}" for i in range(len(simulated))]],
+                                            names=["metric", "model"])
+    return pd.DataFrame(rows, index=station_names, columns=multi_cols)
 
 
 def bias(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame]], stations: list[int]=[]) -> float:
@@ -894,7 +955,7 @@ def time_to_peak(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)-
         n = df.shape[0]
         days_per_year = 366
 
-        for station in stations:
+        for k, station in enumerate(stations):
             data = df[station].values
             tpd = 0.0
             ycount = 0
@@ -912,11 +973,11 @@ def time_to_peak(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)-
                     ycount += 1
 
             avg_ttp = tpd / ycount if ycount > 0 else np.nan
-            results[station] = round(avg_ttp, 3)
+            results[f"Station {k+1}"] = round(avg_ttp, 3)
 
     else:
         last_year = df.index[-1].year
-        for station in stations:
+        for j, station in enumerate(stations):
             station_data = df[station]
             year = df.index[0].year
             start = 0
@@ -936,13 +997,9 @@ def time_to_peak(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)-
                 year += 1
 
             avg_peak = np.mean(yearly_peaks) if yearly_peaks else np.nan
-            results[station] = hlp.sig_figs(avg_peak, 3)
+            results[f"Station {j+1}"] = hlp.sig_figs(avg_peak, 3)
 
-    df_out = pd.DataFrame.from_dict(results, orient='index', columns=['ttp'])
-    # Rename the index to be more descriptive and to match with the other metrics
-    df_out.index = [f"Station {i}" for i in df_out.index.str.extract('(\d+)').astype(int)[0]]
-    df_out.index.name = "Station"
-    return df_out
+    return pd.DataFrame.from_dict(results, orient='index', columns=['ttp'])
 
 
 def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)->float:
@@ -961,7 +1018,7 @@ def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bo
 
     Returns
     -------
-   pd.DataFrame
+    pd.DataFrame
         Dataframe containing the average time to the centre of mass for the stations
 
     Example
@@ -1025,7 +1082,7 @@ def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bo
         n = df.shape[0]
         days_per_year = 366
 
-        for station in stations:
+        for k, station in enumerate(stations):
             data = df[station].values
             total = 0.0
             count = 0
@@ -1043,11 +1100,11 @@ def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bo
                     count += 1
 
             avg_com = total / count if count > 0 else np.nan
-            results[station] = round(avg_com, 3)
+            results[f"Station {k+1}"] = round(avg_com, 3)
 
     else:
         last_year = df.index[-1].year
-        for station in stations:
+        for j, station in enumerate(stations):
             station_data = df[station]
             year = df.index[0].year
             start = 0
@@ -1068,13 +1125,9 @@ def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bo
                 year += 1
 
             avg_com = np.mean(yearly_com) if yearly_com else np.nan
-            results[station] = hlp.sig_figs(avg_com, 3)
+            results[f"Station {j+1}"] = hlp.sig_figs(avg_com, 3)
 
-    df_out = pd.DataFrame.from_dict(results, orient='index', columns=['ttcom'])
-    # Rename the index to be more descriptive and to match with the other metrics
-    df_out.index = [f"Station {i}" for i in df_out.index.str.extract('(\d+)').astype(int)[0]]
-    df_out.index.name = "Station"
-    return df_out
+    return pd.DataFrame.from_dict(results, orient='index', columns=['ttcom'])
 
 
 
@@ -1284,7 +1337,7 @@ def slope_fdc(df: pd.DataFrame, percentiles: tuple[float, float] = [33, 66], sta
 
 
 def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame]], stations: list[int]=[],
-                          format: str="", out: str='metrics_out') -> dict[str, float]:
+                          format: str="", out: str='metrics_out', metric_options: dict | None = None) -> pd.DataFrame:
     """Calculate all metrics.
 
     Parameters
@@ -1302,7 +1355,11 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
     out: str
             used in tandem with the 'format' parameter to specify the name of the output file.
             it is 'metrics_out.{format}' by default
-
+    metric_options example:
+      {
+        "KGE": {"return_kge_components": True},
+        "KGE 2012": {"return_kge_components": True}
+      }
 
     Returns
     -------
@@ -1330,7 +1387,14 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
         simulated = [simulated]
     parameters = (observed, simulated, stations)
 
-    # Define all metric functions and any tweaks
+    metric_options = metric_options or {}
+
+    def _opt_for(name: str) -> dict:
+        for k, v in metric_options.items():
+            if k.lower() == name.lower():
+                return v or {}
+        return {}
+
     metric_funcs = {
         "MSE": mse,
         "RMSE": rmse,
@@ -1339,21 +1403,31 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
         "NegNSE": lambda *args: -nse(*args),
         "LogNSE": lognse,
         "NegLogNSE": lambda *args: -lognse(*args),
-        "KGE": kge,
-        "NegKGE": lambda *args: -kge(*args),
-        "KGE 2012": kge_2012,
+        "KGE": kge,            # will accept return_kge_components
+        "NegKGE": lambda *args: -kge(*args),   # remains scalar
+        "KGE 2012": kge_2012,  # will accept return_kge_components
         "BIAS": bias,
         "AbsBIAS": lambda *args: bias(*args).abs()
     }
-    
+
     metric_dfs = []
 
+    # sim-obs metrics
     for name, func in metric_funcs.items():
-        df = func(*parameters)  # Expecting a DataFrame with index=station, columns=model1, model2...
-        df.columns = pd.MultiIndex.from_product([[name], df.columns])  # e.g., ('KGE', 'model1')
-        metric_dfs.append(df)
-    
-    # Observed-only single-DF metrics
+        opts = _opt_for(name)
+        if name in ["KGE", "KGE 2012"] and "return_kge_components" in opts:
+            df = func(*parameters, return_kge_components=bool(opts["return_kge_components"]))
+        else:
+            df = func(*parameters)
+
+        if isinstance(df.columns, pd.MultiIndex):
+            metric_dfs.append(df)
+        else:
+            df = df.copy()
+            df.columns = pd.MultiIndex.from_product([[name], df.columns])
+            metric_dfs.append(df)
+
+    # obs-only single-DF metrics
     single_obs_metrics = {
         "TTP_obs": time_to_peak,
         "TTCoM_obs": time_to_centre_of_mass,
@@ -1362,14 +1436,13 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
     }
 
     for name, func in single_obs_metrics.items():
-        df = func(observed, stations)  # Each returns a single DF
+        df = func(observed, stations)
         df.columns = pd.MultiIndex.from_product([[name], df.columns])
         metric_dfs.append(df)
 
-    # Per-model single-DF metrics
+    # per-model single-DF metrics
     for idx, sim_df in enumerate(simulated):
         model_name = f"model{idx+1}"
-
         for prefix, func in single_obs_metrics.items():
             name = f"{prefix.replace('_obs', f'_sim_{model_name}')}"
             df = func(sim_df, stations)
@@ -1378,7 +1451,6 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
 
     final_df = pd.concat(metric_dfs, axis=1)
 
-    # Check for a specified format, else print to screen
     if format:
         if format == "txt":
             final_df_txt = final_df.to_csv(sep='\t', index=False, lineterminator='\n')
@@ -1387,16 +1459,13 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
             formatted_lines = []
             for line in columns:
                 formatted_line = ''.join(f'{col:<{12}}' for col in line)
-                formatted_lines.append(formatted_line)            
-            # Join the formatted lines into a single string
-            formatted_str = '\n'.join(formatted_lines)
+                formatted_lines.append(formatted_line)
             with open(out+"."+format, "w") as file:
-                file.write(formatted_str)
-            file.close()
+                file.write('\n'.join(formatted_lines))
             print(f"See {out}.{format} file in directory")
         elif format == "csv":
             final_df.to_csv(f"{out}.{format}")
-            print(f"See {out}.{format} file in directory")            
+            print(f"See {out}.{format} file in directory")
         else:
             print("unknown or uncoded format - " + format)
     else:
@@ -1404,7 +1473,7 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
 
 
 def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame]], metrices: list[str],
-                      stations: list[int]=[], format: str="", out: str='metrics_out') -> dict[str, float]:
+                      stations: list[int]=[], format: str="", out: str='metrics_out', metric_options: dict | None = None) -> pd.DataFrame:
     """Calculate the requested metrics.
 
     Parameters
@@ -1424,6 +1493,12 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
     out: str
             used in tandem with the 'format' parameter to specify the name of the output file.
             it is 'metrics_out.{format}' by default
+    metric_options : dict | None
+        Per-metric options, e.g.:
+        {
+          "KGE": {"return_kge_components": True},
+          "KGE 2012": {"return_kge_components": True}
+        }
 
     Returns
     -------
@@ -1448,6 +1523,14 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
     if isinstance(simulated, pd.DataFrame):
         simulated = [simulated]
     
+    metric_options = metric_options or {}
+
+    def _opt_for(name: str) -> dict:
+        for k, v in metric_options.items():
+            if k.lower() == name.lower():
+                return v or {}
+        return {}
+
     parameters_list = [(observed, sim_df, stations) for sim_df in simulated]
 
     # Mapping of metrics to their functions
@@ -1484,23 +1567,31 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
     for metric in metrices:
         metric_lower = metric.lower()
 
-        # Sim-obs comparison metrics (computed per model)
         if metric_lower in metric_funcs:
+            opts = _opt_for(metric)
             for idx, (obs, sim, st) in enumerate(parameters_list):
-                result = metric_funcs[metric_lower](obs, sim, st)
-                model_name = f"model{idx+1}"
-                df = result.copy()
-                df.columns = pd.MultiIndex.from_product([[metric.upper()], [model_name]])
-                metric_dfs.append(df)
+                # Only pass return_kge_components to KGE flavors
+                if metric_lower in ["kge", "kge 2012"] and "return_kge_components" in opts:
+                    result = metric_funcs[metric_lower](obs, sim, st, return_kge_components=bool(opts["return_kge_components"]))
+                else:
+                    result = metric_funcs[metric_lower](obs, sim, st)
 
-        # Obs-only metrics
+                model_name = f"model{idx+1}"
+
+                # If result already has MultiIndex (components), append as-is
+                if isinstance(result.columns, pd.MultiIndex):
+                    metric_dfs.append(result)
+                else:
+                    df = result.copy()
+                    df.columns = pd.MultiIndex.from_product([[metric.upper()], [model_name]])
+                    metric_dfs.append(df)
+
         elif metric_lower in ["ttp_obs", "ttcom_obs", "spod_obs", "fdc_obs"]:
             result = single_input_metrics[metric_lower]()
             df = result.copy()
             df.columns = pd.MultiIndex.from_product([[metric.upper()], result.columns])
             metric_dfs.append(df)
 
-        # Sim-only metrics (computed per model)
         elif metric_lower in ["ttp_sim", "ttcom_sim", "spod_sim", "fdc_sim"]:
             for idx, sim in enumerate(simulated):
                 result = single_input_metrics[metric_lower](sim)
@@ -1523,13 +1614,10 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
             with open(f"{out}.{format}", "w") as file:
                 file.write('\n'.join(formatted_lines))
             print(f"See {out}.{format} file in directory")
-
         elif format == "csv":
             final_df.to_csv(f"{out}.{format}", index=False)
             print(f"See {out}.{format} file in directory")
-
         else:
             print("Unknown or unsupported format:", format)
-
     else:
         return final_df

@@ -28,20 +28,73 @@ import colorsys
 from postprocessinglib.evaluation import metrics
 from postprocessinglib.utilities import _helper_functions as hlp
 
-def parse_linestyle(linestyle):
+def _parse_linestyle(linestyle):
     """
     Parses a linestyle string to extract color and style.
-    Handles both named colors and RGB tuples.
+    Handles both named colors and RGB tuples as well as style symbols and words.
     """
-    from ast import literal_eval
-    if not isinstance(linestyle, str) or len(linestyle) < 2:
-        raise ValueError(f"Invalid linestyle format: '{linestyle}' — must be at least 2 characters (color + style).")
-    color_str, style = linestyle[:-1], linestyle[-1]
-    if color_str.startswith('('):
-        color = literal_eval(color_str)
-    else:
-        color = color_str
-    return color, style
+    STYLE_MAP = {
+        '--': '--',
+        '-.': '-.',
+        '-': '-',
+        ':': ':',
+        'dotted': ':',
+        'dashed': '--',
+        'solid': '-',
+        '.':'.'
+    }
+
+    # Sort styles by length descending to match longer ones first (e.g., '--' before '-')
+    sorted_styles = sorted(STYLE_MAP.keys(), key=len, reverse=True)
+    for style_key in sorted_styles:
+        if linestyle.endswith(style_key):
+            color_part = linestyle[:-len(style_key)].strip()
+            style = STYLE_MAP[style_key]
+
+            if color_part.startswith('('):  # RGB tuple as string
+                from ast import literal_eval
+                try:
+                    color = literal_eval(color_part)
+                except Exception:
+                    raise ValueError(f"Invalid RGB color format: {color_part}")
+            else:
+                color = color_part if color_part else None  # allow default
+
+            return color, style
+
+    # If no line style is found
+    return linestyle, '-'  # Default to solid line
+
+def _parse_markerstyle(markerstyle: str):
+    """
+    Parses a markerstyle string like 'r.' or '(0.2, 0.4, 0.6, 1.0)^'
+    into a (color, marker) tuple.
+
+    Returns:
+        (color, marker)
+    """
+    valid_markers = {'.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4',
+                     's', 'p', '*', 'h', 'H', '+', 'x', 'X', 'D', 'd', '|', '_'}
+
+    # Try each possible marker at the end of the string
+    for marker in sorted(valid_markers, key=len, reverse=True):
+        if markerstyle.endswith(marker):
+            color_part = markerstyle[:-len(marker)].strip()
+
+            # Handle RGB tuples
+            if color_part.startswith('('):
+                from ast import literal_eval
+                try:
+                    color = literal_eval(color_part)
+                except Exception:
+                    raise ValueError(f"Invalid RGB color format: {color_part}")
+            else:
+                color = color_part if color_part else None
+
+            return color, marker
+
+    raise ValueError(f"Invalid markerstyle: '{markerstyle}'. No valid marker found.")
+
 
 def _save_or_display_plot(fig, save: bool, save_as: Union[str, List[str]], dir: str, i: int, type: str):
     """
@@ -103,7 +156,9 @@ def _save_or_display_plot(fig, save: bool, save_as: Union[str, List[str]], dir: 
         plt.tight_layout()
         if not os.path.exists(dir):
             os.makedirs(dir)
-        filename = f"{save_as}.png" if isinstance(save_as, str) else f"{type}_{i + 1}.png"
+        if isinstance(save_as, str):
+            save_as = [save_as]
+        filename = f"{save_as[i]}.png" if save_as and i < len(save_as) else f"{type}_{i + 1}.png"
         fig.savefig(os.path.join(dir, filename), bbox_inches='tight')
         plt.close(fig)
     else:
@@ -178,33 +233,33 @@ def _prepare_bounds(bounds, line_index, column_index):
     line_bounds = bounds[line_index]  # List of DataFrames for this line
     return [b.iloc[:, column_index] for b in line_bounds]
 
-def _finalize_plot(ax, grid, minor_grid, labels, title, name, i):
+def _finalize_plot(ax, grid, minor_grid, font_size, labels, title, name, i):
     """
     Finalizes the plot by setting labels, title, and grid options.
     """
     plt.legend(loc='best')
 
     plt.tight_layout()    
-    plt.xticks(fontsize=10, rotation=45)
-    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=font_size, rotation=45)
+    plt.yticks(fontsize=font_size)
 
     if labels:
-        plt.xlabel(labels[0], fontsize=18)
-        plt.ylabel(labels[1], fontsize=18)
+        plt.xlabel(labels[0], fontsize=font_size)
+        plt.ylabel(labels[1], fontsize=font_size)
 
     if title:
-        title_dict = {'family': 'sans-serif', 'color': 'black', 'weight': 'normal', 'size': 20}
+        title_dict = {'family': 'sans-serif', 'color': 'black', 'weight': 'normal', 'size': font_size}
         if isinstance(title, list):
-            ax.set_title(title[i] if i < len(title) else f"{name}_{i + 1}", fontdict=title_dict, pad=25)
+            ax.set_title(title[i] if i < len(title) else f"{name}_{i + 1}", fontdict=title_dict, pad=15)
         elif isinstance(title, str):
-            ax.set_title(label=title, fontdict=title_dict, pad=25)
+            ax.set_title(label=title, fontdict=title_dict, pad=15)
 
     if grid:
-        plt.grid(True, which='major') 
+        plt.grid(True, which='major', linestyle='--') 
 
     if minor_grid:
         plt.minorticks_on()
-        ax.grid(which='minor', linewidth='0.5', color='gray')
+        ax.grid(which='minor', linewidth='0.5', color='gray', linestyle='--')
         
 
 
@@ -226,6 +281,8 @@ def plot(
     linestyles: tuple[str, str] = ('r-',), 
     linewidth: tuple[float, float] = (1.5,),
     fig_size: tuple[float, float] = (10, 6), 
+    font_size: int = 12,
+    text_size: int = 12,
     metrics_adjust: tuple[float, float] = (1.05, 0.5),
     plot_adjust: float = 0.2,
     save: bool = False, 
@@ -291,6 +348,12 @@ def plot(
 
     fig_size : tuple of float, optional
         A tuple specifying the size of the figure.
+
+    font_size : int, optional
+        The font size for the plot text, default is 12.
+
+    text_size : int, optional
+        The font size for the metrics text on the plot, default is 12.
 
     metrics_adjust : tuple of float, optional
         A tuple specifying the position for the metrics on the plot.
@@ -445,7 +508,7 @@ def plot(
         for i in range (0, len(line_df.columns)) if isinstance(line_df, pd.DataFrame) else range (0, len(line_df)):
             # Plotting the Data     
             fig, ax = plt.subplots(figsize=fig_size, facecolor='w', edgecolor='k')
-            color, style = parse_linestyle(linestyles[0])  # parse once for df
+            color, style = _parse_linestyle(linestyles[0])  # parse once for df
             if step:
                 ax.step(time, line_df.iloc[:, i], where=where, color=color, linestyle=style,
                         label=legend[0], linewidth=linewidth[0])
@@ -455,7 +518,7 @@ def plot(
 
             if padding:
                 plt.xlim(time[0], time[-1])
-            _finalize_plot(ax, grid, minor_grid, labels, title, "plot", i)
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "plot", i)
             auto_save = len(line_df.columns) > 5
             _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "plot")
     else:
@@ -464,7 +527,7 @@ def plot(
             # Plotting the Data     
             fig, ax = plt.subplots(figsize=fig_size, facecolor='w', edgecolor='k')
             if obs is not None:                
-                color, style = parse_linestyle(linestyles[0])
+                color, style = _parse_linestyle(linestyles[0])
                 if step:
                     ax.step(time, obs.iloc[:, i], where=where, color=color, linestyle=style,
                             label=legend[0], linewidth=linewidth[0])
@@ -472,7 +535,7 @@ def plot(
                     ax.plot(time, obs.iloc[:, i], color=color, linestyle=style,
                             label=legend[0], linewidth=linewidth[0])
             for j in range(1, num_sim+1):
-                color, style = parse_linestyle(linestyles[j])  # Parse the first linestyle for simulated data
+                color, style = _parse_linestyle(linestyles[j])  # Parse the first linestyle for simulated data
                 if step:
                     ax.step(time, sims[f"sim_{j}"].iloc[:, i], where=where, color=color,
                             linestyle=style, label=legend[j], linewidth=linewidth[j])
@@ -481,7 +544,7 @@ def plot(
                             linestyle=style, label=legend[j], linewidth=linewidth[j])           
             if padding:
                 plt.xlim(time[0], time[-1])
-            _finalize_plot(ax, grid, minor_grid, labels, title, "plot", i)
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "plot", i)
 
             # Placing Metrics on the Plot if requested
             if obs is not None and metrices:
@@ -510,7 +573,7 @@ def plot(
                     raise ValueError("Invalid mode or missing models list.")
 
                 # Plot the text on the figure
-                font = {'family': 'sans-serif', 'weight': 'normal', 'size': 12}
+                font = {'family': 'sans-serif', 'weight': 'normal', 'size': text_size}
                 plt.text(metrics_adjust[0], metrics_adjust[1], formatted_metrics,
                         ha='left', va='center', transform=ax.transAxes, fontdict=font,
                         bbox=dict(boxstyle="round, pad=0.5,rounding_size=0.3", facecolor="0.8", edgecolor="k"))
@@ -536,8 +599,11 @@ def bounded_plot(
     title: Union[str, List[str]] = None,
     labels: Tuple[str, str] = None,
     linestyles: Tuple[str, str] = ('r-',),
+    linewidth: tuple[float, float] = (1.5,),
     padding: bool = False,
     fig_size: Tuple[float, float] = (10, 6),
+    font_size: int = 12,
+    text_size: int = 5,
     metrices: List[str] = None,
     transparency: Tuple[float, float] = [0.4],
     save: bool = False,
@@ -600,11 +666,20 @@ def bounded_plot(
     linestyles : tuple of str, optional
         A tuple specifying the line styles for the simulated and observed data.
 
+    linewidth : tuple of float, optional
+        A tuple specifying the line widths for each line or extra line. Default is (1.5,).
+
     padding : bool, optional
         Whether to add padding to the x-axis limits for a tighter plot, default is False.
 
     fig_size : tuple of float, optional
         A tuple specifying the size of the figure.
+
+    font_size : int, optional
+        The font size for the plot text, default is 12.
+    
+    text_size : int, optional
+        The font size for the metrics text on the plot, default is 5.
 
     transparency : list of float, optional
         A list specifying the transparency levels for the upper and lower bounds, default is [0.4, 0.4].
@@ -741,10 +816,20 @@ def bounded_plot(
     # Generate linestyles dynamically
     if len(linestyles) < (len(lines)+len(extra_lines) if extra_lines else len(lines)):
         print("Number of linestyles provided is less than the minimum required. "
-                "Number of Lines : " + str(len(lines)+ len(extra_lines) if extra_lines else len(lines)) + ". Number of linestyles provided is: ", str(len(linestyles)) +
+                "Number of Lines : " + str(len(lines)+ len(extra_lines) if extra_lines else len(lines)) +
+                ". Number of linestyles provided is: ", str(len(linestyles)) +
                 ". Defaulting to solid lines (-)")
         linestyles = linestyles + tuple(f"{colors[i % len(colors)]}{style[i % len(style)]}" 
                         for i in range(len(lines)+len(extra_lines) if extra_lines else len(lines)))
+        
+    # Line width generation
+    if len(linewidth) < (len(lines)+len(extra_lines) if extra_lines else len(lines)):
+        print("Number of linewidths provided is less than the number of lines to plot. "
+                "Number of lines : " + str(len(lines)+len(extra_lines) if extra_lines else len(lines)) + 
+                ". Number of linewidths provided is: ", str(len(linewidth)) +
+                ". Defaulting to 1.5")
+        linewidth = linewidth + (1.5,) * (len(lines)+len(extra_lines) if extra_lines else len(lines))
+
 
     # Plotting
     num_columns = lines[0].shape[1]  # all lines have same number of columns
@@ -757,26 +842,27 @@ def bounded_plot(
         if extra_lines:
             # z = 0 # Just to avoid erroring out if extra_lines is None
             for z, extra_line in enumerate(extra_lines):
+
+                color, style = _parse_linestyle(linestyles[z])
+
                 if step:
                     ax.step(
                         extra_line.index,
                         extra_line.iloc[:, i],
-                        color =  eval(linestyles[z][:-1]) if linestyles[z][:-1].startswith("(") else linestyles[z][:-1], 
-                        # linestyle='--',
-                        linestyle=linestyles[z][-1],
+                        color=color, 
+                        linestyle=style,
                         label=legend[z] if legend else "Extra Line",
-                        linewidth=1.5,
+                        linewidth=linewidth[z],
                         where=where,
                     )
                 else:
                     ax.plot(
                         extra_line.index,
                         extra_line.iloc[:, i],
-                        color =  eval(linestyles[z][:-1]) if linestyles[z][:-1].startswith("(") else linestyles[z][:-1], 
-                        # linestyle='--',
-                        linestyle=linestyles[z][-1],
+                        color=color, 
+                        linestyle=style,
                         label=legend[z] if legend else "Extra Line",
-                        linewidth=1.5
+                        linewidth=linewidth[z]
                     )
 
         # Plot each main line and its bounds
@@ -784,7 +870,7 @@ def bounded_plot(
             if not isinstance(line, pd.DataFrame):
                 raise ValueError("All items in 'lines' must be a DataFrame.")
             
-            color, style = parse_linestyle(linestyles[line_index+z+1] if extra_lines else linestyles[line_index])
+            color, style = _parse_linestyle(linestyles[line_index+z+1] if extra_lines else linestyles[line_index])
             
             if step:
                 ax.step(
@@ -797,7 +883,7 @@ def bounded_plot(
                             else legend[line_index] if legend
                             else f"Line {line_index+1}"
                         ),
-                    linewidth=1.5,
+                    linewidth= linewidth[line_index+z+1] if extra_lines else linewidth[line_index],
                     where=where,
                 )
             else:
@@ -811,7 +897,7 @@ def bounded_plot(
                             else legend[line_index] if legend
                             else f"Line {line_index+1}"
                         ),
-                    linewidth=1.5
+                    linewidth=linewidth[line_index+z+1] if extra_lines else linewidth[line_index]
                 )
 
             upper_obs = _prepare_bounds(upper_bounds, line_index, i)
@@ -859,7 +945,7 @@ def bounded_plot(
                     0.01, 0.95 - 0.10 * line_index,  # Offset based on line index
                     s=text_block,
                     transform=plt.gca().transAxes,
-                    fontsize=10,
+                    fontsize=text_size,
                     verticalalignment='top',
                     bbox=dict(
                         boxstyle='round,pad=0.3',
@@ -874,7 +960,7 @@ def bounded_plot(
         if padding:
             plt.xlim(lines[0].index[0], lines[0].index[-1])
 
-        _finalize_plot(ax, grid, minor_grid, labels, title, "bounded-plot", i)
+        _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "bounded-plot", i)
 
         auto_save = num_columns > 5
         _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "bounded-plot")
@@ -883,15 +969,15 @@ def bounded_plot(
 def histogram(
     merged_df: pd.DataFrame = None, 
     df: pd.DataFrame = None, 
-    obs_df: pd.DataFrame = None, 
     sim_df: pd.DataFrame = None,
     bins: int = 100,
     legend: Tuple[str, str] = ('Simulated Data', 'Observed Data'),
-    colors: Tuple[str, str] = ('r', 'b'),
+    colors: list[str] = ['r', 'b'],
     transparency: float = 0.6,
     z_norm=False,
     prob_dens=False,
     fig_size: Tuple[float, float] = (12, 6),
+    font_size: int = 12,
     title: str = None,
     labels: Tuple[str, str] = ('Value', 'Frequency'),
     grid: bool = False,
@@ -958,6 +1044,9 @@ def histogram(
     figsize: tuple of float
         Tuple of length two that specifies the horizontal and vertical lengths of the plot in
         inches, respectively.
+    
+    font_size: int, optional
+        Font size for the plot text elements, default is 12.
 
     colors : tuple of str, optional
         Colors for the simulated and observed histograms.
@@ -1008,56 +1097,62 @@ def histogram(
     `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
 
     """
+    if df is None:
+        # Get the number of simulated data columns
+        num_sim = sum(1 for col in  merged_df.columns if col[0] == merged_df.columns[0][0])-1 if merged_df is not None else sum(1 for col in  sim_df.columns if col[0] == sim_df.columns[0][0])
+        print(f"Number of simulated data columns: {num_sim}")
+        
+        # Generate colors dynamically using Matplotlib colormap
+        cmap = plt.cm.get_cmap("tab10", num_sim + 1)  # +1 for Observed
+        colors = colors + [cmap(i) for i in range(num_sim + 1)]
+            
+        # Generate Legends dynamically
+        if len(legend) < num_sim + 1:
+            print("Number of legends provided is less than the number of columns. "
+                    "Number of columns : " + str(num_sim + 1) + ". Number of legends provided is: ", str(len(legend)) +
+                    ". Applying Default legend names")
+            legend = (["Observed"] + [f"Simulated {i+1}" for i in range(num_sim)] if merged_df is not None else [f"Simulated {i+1}" for i in range(num_sim)])           
+            
+
     # Assign the data based on inputs
+    sims = {}
+    obs = None
     if merged_df is not None:
         # If merged_df is provided, separate observed and simulated data
-        obs = merged_df.iloc[:, ::2]
-        sim = merged_df.iloc[:, 1::2]
-    elif sim_df is not None and obs_df is not None:
-        # If both sim_df and obs_df are provided
-        obs = obs_df
-        sim = sim_df
+        obs = merged_df.iloc[:, ::num_sim+1]
+        for i in range(1, num_sim+1):
+            sims[f"sim_{i}"] = merged_df.iloc[:, i::num_sim+1]
+    elif sim_df is not None:
+        # If sim_df is provided, that means theres no observed.
+        for i in range(0, num_sim):
+            sims[f"sim_{i+1}"] = sim_df.iloc[:, i::num_sim]
     elif df is not None:
-        # If only df is provided, treat it as both observed and simulated data
-        obs = df # to keep the future for loop valid
-        sim = None
+        # If only df is provided, it could be either obs, simulated or just random data.
+        # obs = df # to keep the future for loop valid
         line_df = df
     else:
-        raise RuntimeError('Please provide valid data (merged_df, obs_df, sim_df, or df)')
+        raise RuntimeError('Please provide valid data (merged_df, sim_df, or df)')
     
-    for i in range (0, len(obs.columns)):
-        # Manipulating and generating the Data
-        if z_norm:
-            # calculating the z-score for the observed data
-            obs.iloc[:, i] = (obs.iloc[:, i] - obs.iloc[:, i].mean()) / obs.iloc[:, i].std()
+    # Plotting
+    if df is not None:
+        for i in range (0, len(line_df.columns)) if isinstance(line_df, pd.DataFrame) else range (0, len(line_df)):
+            # Manipulating and generating the Data
+            if z_norm:
+                # calculating the z-score for the observed data
+                line_df.iloc[:, i] = (line_df.iloc[:, i] - line_df.iloc[:, i].mean()) / line_df.iloc[:, i].std()
 
-            if sim is not None:
-                # calculating the z-score for the simulated data 
-                sim.iloc[:, i] = (sim.iloc[:, i] - sim.iloc[:, i].mean()) / sim.iloc[:, i].std()
+            # finding the mimimum and maximum z-scores
+            total_max = line_df.iloc[:, i].max()
+            total_min = line_df.iloc[:, i].min()
 
-        # finding the mimimum and maximum z-scores
-        total_max = max(obs.iloc[:, i].max(), sim.iloc[:, i].max()) if sim is not None else obs.iloc[:, i].max()
-        total_min = min(obs.iloc[:, i].min(), sim.iloc[:, i].min()) if sim is not None else obs.iloc[:, i].min()
-        num_bins = np.linspace(total_min - 0.01, total_max + 0.01, bins)
-
-        # creating the bins based on the max and min
-        num_bins = np.linspace(total_min - 0.01, total_max + 0.01, bins)    
-
-        # Getting the fig and axis handles
-        fig = plt.figure(figsize=fig_size)
-        ax = fig.add_subplot(111) 
-
-        # Plotting the Data
-        ax.hist(obs.iloc[:, i],
-                bins=num_bins,
-                alpha=transparency,
-                label=legend[1],
-                color=colors[1],
-                edgecolor='black',
-                linewidth=0.5,
-                density=prob_dens)
-        if sim is not None:
-            ax.hist(sim.iloc[:, i],
+            # creating the bins based on the max and min
+            num_bins = np.linspace(total_min - 0.01, total_max + 0.01, bins) 
+            
+            # Plotting the Data     
+            fig = plt.figure(figsize=fig_size, facecolor='w', edgecolor='k')
+            ax = fig.add_subplot(111)
+            
+            ax.hist(line_df.iloc[:, i],
                 bins=num_bins,
                 alpha=transparency,
                 label=legend[0],
@@ -1065,13 +1160,64 @@ def histogram(
                 edgecolor='black',
                 linewidth=0.5,
                 density=prob_dens)
-            plt.legend(labels=[legend[1],legend[0]], loc='best')
+            
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "plot", i)
+            auto_save = len(line_df.columns) > 5
+            _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "plot")
+    else:
+        # In either case of merged or sim_df, we will alwaays have simulated data, so we plot the obs first if we have it.
+        for i in range (0, len(sims["sim_1"].columns)):
+            obs_series = obs.iloc[:, i] if obs is not None else None
+            sim_series_list = []
+            if z_norm:
+                if obs is not None:
+                    obs_series = (obs_series - obs_series.mean()) / obs_series.std()
+                for j in range(1, num_sim + 1):
+                    sim_j = sims[f"sim_{j}"].iloc[:, i]
+                    sim_j = (sim_j - sim_j.mean()) / sim_j.std()
+                    sim_series_list.append(sim_j)
+            else:
+                if obs is not None:
+                    obs_series = obs_series.copy()
+                for j in range(1, num_sim + 1):
+                    sim_series_list.append(sims[f"sim_{j}"].iloc[:, i])       
 
-        _finalize_plot(ax, grid, minor_grid, labels, title, "histogram", i)
+            # Combine all relevant series to determine global min/max
+            combined_series = sim_series_list.copy()
+            if obs_series is not None:
+                combined_series.append(obs_series)
 
-        # Save or auto-save for large column counts
-        auto_save = len(obs.columns) > 5
-        _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "histogram")
+            total_min = min(s.min() for s in combined_series)
+            total_max = max(s.max() for s in combined_series)
+            num_bins = np.linspace(total_min - 0.01, total_max + 0.01, bins)
+
+            # Plotting the Data     
+            fig = plt.figure(figsize=fig_size, facecolor='w', edgecolor='k')
+            ax = fig.add_subplot(111)
+            
+            ax.hist(obs_series,
+                bins=num_bins,
+                alpha=transparency,
+                label=legend[0],
+                color=colors[0],
+                edgecolor='black',
+                linewidth=0.5,
+                density=prob_dens
+                )
+            for j, sim_series in enumerate(sim_series_list, start=1):
+                ax.hist(sim_series,
+                        bins=num_bins,
+                        alpha=transparency,
+                        label=legend[j],
+                        color=colors[j],
+                        edgecolor='black',
+                        linewidth=0.5,
+                        density=prob_dens
+                        )
+            
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "plot", i)
+            auto_save = len(sims["sim_1"].columns) > 5
+            _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "plot")
 
 
 def scatter(
@@ -1085,6 +1231,8 @@ def scatter(
   line45: bool = False,
   mode:str = 'median',
   models:List[str] = None,
+  font_size: int = 12,
+  text_size: int = 12,
 
   merged_df: pd.DataFrame = None, 
   obs_df: pd.DataFrame = None, 
@@ -1103,6 +1251,7 @@ def scatter(
   metric: str = "", 
   observed: pd.DataFrame = None, 
   simulated: pd.DataFrame = None,
+  markersize: int = 10,
   cmap: str='jet',
   vmin: float=None,
   vmax:float=None
@@ -1138,6 +1287,9 @@ def scatter(
 
     fig_size : tuple of float, optional
         A tuple specifying the size of the figure.
+
+    font_size : int, optional
+        Font size for the plot text, default is 12.
 
     merged_df : pd.DataFrame, optional
         The dataframe containing the series of observed and simulated values. It must have a datetime index.
@@ -1193,6 +1345,9 @@ def scatter(
 
     simulated : pd.DataFrame, optional
         Used to calculate the metric for the scatter plot.
+
+    markersize: int, optional
+        Size of the markers in the shapefile scatter plot. Default is 10.
 
     mode: str, optional
         The mode used to calculate the metric for the scatter plot. Default is 'median'. But it can be 'models' or 'mean'.
@@ -1337,7 +1492,7 @@ def scatter(
             # Plotting the Data
             fig, ax = plt.subplots(figsize=fig_size, facecolor='w', edgecolor='k')
             for j in range(1, num_sim+1):
-                color, marker = parse_linestyle(markerstyle[j-1])  # Parse the first linestyle for simulated data
+                color, marker = _parse_markerstyle(markerstyle[j-1])  # Parse the first linestyle for simulated data
                 ax.plot(sims[f"sim_{j}"].iloc[:, i], obs.iloc[:, i],
                         color = color,
                         marker = marker, 
@@ -1372,9 +1527,9 @@ def scatter(
 
             
             if best_fit or line45:
-                ax.legend(fontsize=12)
+                ax.legend(fontsize=font_size, loc='best')
             
-            _finalize_plot(ax, grid, minor_grid, labels, title, "scatter-plot", i)               
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "scatter-plot", i)               
 
             # Placing Metrics on the Plot if requested
             if metrices:
@@ -1403,7 +1558,7 @@ def scatter(
                     raise ValueError("Invalid mode or missing models list.")
 
                 # Plot the text on the figure
-                font = {'family': 'sans-serif', 'weight': 'normal', 'size': 12}
+                font = {'family': 'sans-serif', 'weight': 'normal', 'size': text_size}
                 plt.text(metrics_adjust[0], metrics_adjust[1], formatted_metrics,
                         ha='left', va='center', transform=ax.transAxes, fontdict=font,
                         bbox=dict(boxstyle="round, pad=0.5,rounding_size=0.3", facecolor="0.8", edgecolor="k"))
@@ -1414,23 +1569,53 @@ def scatter(
             auto_save = len(obs.columns) > 5
             _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "scatter-plot")
     else:
+        # use simultated to determine if single or multiple models
+        if isinstance(simulated, pd.DataFrame):
+            simulated = [simulated] 
         # Calculate metrics: returns MultiIndex column DataFrame
         metr = metrics.calculate_metrics(observed=observed, simulated=simulated, metrices=[metric])
         # metric_df = metr[metric]  # e.g., metr["KGE"] gives all models for KGE
         # print(f"Metrics to plot: \n{metr}\n")
 
         # Determine values to plot
-        if mode == "median":
-            median_vals = metr.median(axis=1)
-            values = pd.DataFrame({f"{metric}_median": median_vals})
-            columns = [f"{metric}_median"]
+        mode_list = ("median", "mean", "mode", "max", "min", "std", "sum")
+        if mode in mode_list:
+            # Map mode strings to appropriate aggregation functions
+            agg_func_map = {
+                "median": lambda df: df.median(axis=1),
+                "mean": lambda df: df.mean(axis=1),
+                "mode": lambda df: df.mode(axis=1).iloc[:, 0] if not df.mode(axis=1).empty else np.nan,
+                "max": lambda df: df.max(axis=1),
+                "min": lambda df: df.min(axis=1),
+                "std": lambda df: df.std(axis=1),
+                "sum": lambda df: df.sum(axis=1)
+            }
+
+            # Handle multi-index column DataFrame
+            if isinstance(metr.columns, pd.MultiIndex):
+                try:
+                    data_block = metr.loc[:, metric]  # extract the DataFrame (e.g., KGE for all models)
+                except KeyError:
+                    raise ValueError(f"Metric '{metric}' not found in metrics DataFrame.")
+            else:
+                data_block = metr  # Fallback if not multi-indexed
+
+            # Apply the appropriate aggregation
+            agg_func = agg_func_map[mode]
+            agg_result = agg_func(data_block)
+
+            values = pd.DataFrame({f"{metric}_{mode}": agg_result})
+            columns = [f"{metric}_{mode}"]
+
         elif mode == "models" and models:
             # Assume columns are like: MultiIndex([("MSE", "model1"), ("MSE", "model2"), ...])
-            values = metr.loc[:, (metric, models)]  # Use tuple to get (metric, modelX)
+            values = metr.loc[:, (metric, models)]
             values.columns = models  # Flatten columns for plotting
-            columns = values.columns.tolist()            
+            columns = values.columns.tolist()
+
         else:
             raise ValueError("Invalid mode or missing model list for 'models' mode")
+
 
         # print(f"Values to plot: \n{values}\n")
 
@@ -1466,12 +1651,19 @@ def scatter(
             gdf_shapefile.plot(ax=ax, edgecolor='black', facecolor="None", linewidth=0.5)
 
             # Plot metric values
-            legend_label = f"{col}" if mode == "models" else f"{metric} (median)"
+            legend_label = f"{col}" if mode == "models" else f"{metric} ({mode})" if len(simulated) > 1 else metric
             gdf_points.plot(ax=ax, column=col, cmap=cmap, vmin=vmin, vmax=vmax,
-                            legend=True, markersize=40, label=legend_label,
+                            legend=True, markersize=markersize, label=legend_label,
                             legend_kwds={'label': legend_label, "orientation": "vertical"})
+            
+            # Manually get the colorbar from the figure
+            cbar = plt.gcf().get_axes()[-1]  # Get the colorbar axis
 
-            _finalize_plot(ax, grid, minor_grid, labels, title, "shapefile-plot", idx)
+            # ✅ Adjust tick label font size
+            cbar.tick_params(labelsize=font_size)
+
+
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "shapefile-plot", idx)
         
             # Save or auto-save for large column counts
             _save_or_display_plot(fig, save, save_as, dir, i=idx, type="shapefile-plot")
@@ -1483,6 +1675,7 @@ def qqplot(
     title: str = None, 
     labels: tuple[str, str] = None, 
     fig_size: tuple[float, float] = (10, 6),
+    font_size: int = 12,
     method: str = "linear", 
     legend: list[str] = None, 
     linewidth: tuple[float, float] = (1.5, 2.5),
@@ -1522,6 +1715,9 @@ def qqplot(
     fig_size: tuple[float, float]
         Tuple of length two that specifies the horizontal and vertical lengths of the plot in
         inches, respectively.
+
+    font_size: int, optional
+        Font size for the plot text, default is 12.
 
     method: str
         Determines whether the quantiles should be interpolated when the data length differs.
@@ -1698,7 +1894,7 @@ def qqplot(
             ax.plot(msim, mobs, linestyle=linestyle[1][1:], label=q_labels[0], linewidth=linewidth[0], color=adjusted_color)
             ax.plot(quant_sim, quant_obs, linestyle=linestyle[2][1], label=q_labels[1], marker='o', markerfacecolor='w', linewidth=linewidth[1], color=adjusted_color)
 
-        _finalize_plot(ax, grid, minor_grid, labels, title, "qqplot", i)
+        _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "qqplot", i)
 
         # Save or auto-save for large column counts
         auto_save = len(obs.columns) > 5
@@ -1717,6 +1913,7 @@ def flow_duration_curve(
     linestyles: tuple[str, str] = ('r-',), 
     linewidth: tuple[float, float] = (1.5,),
     fig_size: tuple[float, float] = (10, 6), 
+    font_size: int = 12,
     save: bool = False, 
     save_as: str = None, 
     dir: str = os.getcwd()
@@ -1767,6 +1964,9 @@ def flow_duration_curve(
 
     fig_size : tuple of float, optional
         A tuple with two floats specifying the width and height of the figure in inches. Defaults to (10, 6).
+
+    font_size : int, optional
+        Font size for the plot text. Defaults to 12.
 
     save : bool, optional
         Whether to save the plot as a file. Defaults to False.
@@ -1873,7 +2073,7 @@ def flow_duration_curve(
             exceedance_prob = np.linspace(0, 100, len(line_df_sorted))
             ax.plot(exceedance_prob, line_df_sorted, linestyles[0], label=legend[0], linewidth=linewidth[0])
 
-            _finalize_plot(ax, grid, minor_grid, labels, title, "fdc-plot", i)
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "fdc-plot", i)
             
             # Save or auto-save for large column counts
             auto_save = len(obs.columns) > 5
@@ -1894,7 +2094,7 @@ def flow_duration_curve(
                 ax.plot(exceedance_prob, sim_sorted, color = eval(linestyles[j][:-1]) if linestyles[j][:-1].startswith("(") else linestyles[j][:-1],
                         linestyle = linestyles[j][-1], label=legend[j], linewidth = linewidth[j])            
 
-            _finalize_plot(ax, grid, minor_grid, labels, title, "fdc-plot", i)
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "fdc-plot", i)
     
             # Save or auto-save for large column counts
             auto_save = len(obs.columns) > 5
