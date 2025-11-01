@@ -14,7 +14,7 @@ Some of them also allow their metrics to be placed beside the plots as shown bel
 
 """
 
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional, Dict, Callable
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -27,6 +27,17 @@ import colorsys
 
 from postprocessinglib.evaluation import metrics
 from postprocessinglib.utilities import _helper_functions as hlp
+
+import re
+from ast import literal_eval
+
+def _clean_color_tuple_str(s: str) -> str:
+    """
+    Convert strings like '(np.float64(0.1), numpy.float64(0.2), 0.3, 1.0)'
+    into '(0.1, 0.2, 0.3, 1.0)' so ast.literal_eval can parse it.
+    """
+    # strip both 'np.float64(x)' and 'numpy.float64(x)'
+    return re.sub(r'(?:np|numpy)\.float64\(([^)]+)\)', r'\1', s)
 
 def _parse_linestyle(linestyle):
     """
@@ -41,7 +52,7 @@ def _parse_linestyle(linestyle):
         'dotted': ':',
         'dashed': '--',
         'solid': '-',
-        '.':'.'
+        '.': '.',
     }
 
     # Sort styles by length descending to match longer ones first (e.g., '--' before '-')
@@ -51,10 +62,9 @@ def _parse_linestyle(linestyle):
             color_part = linestyle[:-len(style_key)].strip()
             style = STYLE_MAP[style_key]
 
-            if color_part.startswith('('):  # RGB tuple as string
-                from ast import literal_eval
+            if color_part.startswith('('):  # RGB/RGBA tuple as string
                 try:
-                    color = literal_eval(color_part)
+                    color = literal_eval(_clean_color_tuple_str(color_part))
                 except Exception:
                     raise ValueError(f"Invalid RGB color format: {color_part}")
             else:
@@ -62,30 +72,25 @@ def _parse_linestyle(linestyle):
 
             return color, style
 
-    # If no line style is found
+    # If no line style is found, treat the whole input as a plain style/color
     return linestyle, '-'  # Default to solid line
+
 
 def _parse_markerstyle(markerstyle: str):
     """
     Parses a markerstyle string like 'r.' or '(0.2, 0.4, 0.6, 1.0)^'
     into a (color, marker) tuple.
-
-    Returns:
-        (color, marker)
     """
     valid_markers = {'.', ',', 'o', 'v', '^', '<', '>', '1', '2', '3', '4',
                      's', 'p', '*', 'h', 'H', '+', 'x', 'X', 'D', 'd', '|', '_'}
 
-    # Try each possible marker at the end of the string
     for marker in sorted(valid_markers, key=len, reverse=True):
         if markerstyle.endswith(marker):
             color_part = markerstyle[:-len(marker)].strip()
 
-            # Handle RGB tuples
             if color_part.startswith('('):
-                from ast import literal_eval
                 try:
-                    color = literal_eval(color_part)
+                    color = literal_eval(_clean_color_tuple_str(color_part))
                 except Exception:
                     raise ValueError(f"Invalid RGB color format: {color_part}")
             else:
@@ -159,7 +164,7 @@ def _save_or_display_plot(fig, save: bool, save_as: Union[str, List[str]], dir: 
         if isinstance(save_as, str):
             save_as = [save_as]
         filename = f"{save_as[i]}.png" if save_as and i < len(save_as) else f"{type}_{i + 1}.png"
-        fig.savefig(os.path.join(dir, filename), bbox_inches='tight')
+        fig.savefig(os.path.join(dir, filename), dpi=300, bbox_inches='tight')
         plt.close(fig)
     else:
         plt.show()
@@ -233,33 +238,76 @@ def _prepare_bounds(bounds, line_index, column_index):
     line_bounds = bounds[line_index]  # List of DataFrames for this line
     return [b.iloc[:, column_index] for b in line_bounds]
 
-def _finalize_plot(ax, grid, minor_grid, font_size, labels, title, name, i):
+
+from typing import Literal, Union, List, Tuple
+
+def _finalize_plot(
+    ax,
+    grid: bool,
+    minor_grid: bool,
+    font_size: int,
+    labels: Union[List[str], Tuple[str, str], None],
+    title: Union[str, List[str], None],
+    name: str,
+    i: int,
+    layout: Literal["tight", "constrained", "none", "auto"] = "auto",
+):
     """
-    Finalizes the plot by setting labels, title, and grid options.
+    One place to do cosmetics + layout without stepping on colorbars.
+
+    layout:
+      - "tight"        : always call fig.tight_layout()
+      - "constrained"  : figure created with constrained_layout=True; do nothing here
+      - "none"         : never touch layout (good when you manually place a colorbar with GridSpec/inset_axes)
+      - "auto" (default): if there is only one Axes in the figure, use tight_layout();
+                          otherwise leave it alone (prevents squashing side colorbars)
     """
-    plt.legend(loc='best')
+    # legend only if there are handles
+    handles, lab = ax.get_legend_handles_labels()
+    if handles:
+        ax.legend(loc='best', fontsize=font_size)
 
-    plt.tight_layout()    
-    plt.xticks(fontsize=font_size, rotation=45)
-    plt.yticks(fontsize=font_size)
+    # axis labels if provided like (x, y)
+    if isinstance(labels, (list, tuple)) and len(labels) == 2:
+        ax.set_xlabel(labels[0], fontsize=font_size)
+        ax.set_ylabel(labels[1], fontsize=font_size)
 
-    if labels:
-        plt.xlabel(labels[0], fontsize=font_size)
-        plt.ylabel(labels[1], fontsize=font_size)
-
+    # title: list vs str
     if title:
-        title_dict = {'family': 'sans-serif', 'color': 'black', 'weight': 'normal', 'size': font_size}
+        title_dict = {
+            'family': 'sans-serif', 'color': 'black',
+            'weight': 'normal', 'size': font_size
+        }
         if isinstance(title, list):
-            ax.set_title(title[i] if i < len(title) else f"{name}_{i + 1}", fontdict=title_dict, pad=15)
-        elif isinstance(title, str):
-            ax.set_title(label=title, fontdict=title_dict, pad=15)
+            ax.set_title(title[i] if i < len(title) else f"{name}_{i+1}",
+                         fontdict=title_dict, pad=10)
+        else:
+            ax.set_title(str(title), fontdict=title_dict, pad=10)
 
+    # grid options
     if grid:
-        plt.grid(True, which='major', linestyle='--') 
-
+        ax.grid(True, which='major', linestyle='--', linewidth=0.6, alpha=0.6)
     if minor_grid:
-        plt.minorticks_on()
-        ax.grid(which='minor', linewidth='0.5', color='gray', linestyle='--')
+        ax.minorticks_on()
+        ax.grid(which='minor', linewidth=0.4, color='0.8', linestyle='--', alpha=0.6)
+
+    # tick label sizes
+    ax.tick_params(labelsize=font_size)
+
+    # ---- layout control ----
+    fig: Figure = ax.figure
+    if layout == "tight":
+        fig.tight_layout()
+    elif layout == "constrained":
+        # use when you created the figure with constrained_layout=True
+        pass
+    elif layout == "none":
+        # leave spacing exactly as-is (useful when you placed a side colorbar with GridSpec/inset_axes)
+        pass
+    else:  # "auto"
+        # Avoid crushing a side colorbar: only tighten if this fig has a single axes
+        if len(fig.axes) == 1:
+            fig.tight_layout()
         
 
 
@@ -271,6 +319,8 @@ def plot(
     where: str = 'pre',
     legend: tuple[str, str] = ('Data',), 
     metrices: list[str] = None,
+    metric_options: dict | None = None,
+    components: tuple[str, ...] | None = None, 
     mode:str = 'median',
     models:List[str] = None,
     grid: bool = False,
@@ -547,38 +597,103 @@ def plot(
             _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "plot", i)
 
             # Placing Metrics on the Plot if requested
+            # Placing Metrics on the Plot if requested
             if obs is not None and metrices:
                 observed = obs.iloc[:, [i]]
-                sim_list = [sims[f"sim_{j}"].iloc[:,[i]] for j in range(1, num_sim+1)]
-                metr = metrics.calculate_metrics(observed=observed, simulated=sim_list, metrices=metrices)
+                sim_list = [sims[f"sim_{j}"].iloc[:, [i]] for j in range(1, num_sim + 1)]
+
+                metr = metrics.calculate_metrics(
+                    observed=observed,
+                    simulated=sim_list,
+                    metrices=metrices,
+                    metric_options=metric_options
+                )
+
                 formatted_metrics = "Metrics:\n"
 
-                if mode == "median":
-                    assert isinstance(metr, pd.DataFrame)
-                    for metric_name in metrices:
-                        median_series = metr[metric_name].median(axis=1)
-                        formatted_metrics += f"{metric_name} : {median_series.iloc[0]:.3f}\n"
+                def _norm_comp(c: str) -> str:
+                    m = c.strip().lower()
+                    return {"kge": "KGE", "r": "r", "alpha": "alpha", "beta": "beta"}.get(m, c)
 
-                elif mode == "models" and models:
-                    assert isinstance(metr, pd.DataFrame)
-                    for metric_name in metrices:
-                        formatted_metrics += f"{metric_name}:\n"
-                        for model in models:
+                _agg = {
+                    "median": lambda df: df.median(axis=1),
+                    "mean":   lambda df: df.mean(axis=1),
+                    "mode":   lambda df: df.mode(axis=1).iloc[:, 0] if not df.mode(axis=1).empty else np.nan,
+                    "max":    lambda df: df.max(axis=1),
+                    "min":    lambda df: df.min(axis=1),
+                    "std":    lambda df: df.std(axis=1),
+                    "sum":    lambda df: df.sum(axis=1),
+                }
+
+                # --- 1) Print requested COMPONENTS (if any) ---
+                printed_components = set()
+                if isinstance(metr.columns, pd.MultiIndex) and components:
+                    if mode in _agg:  # aggregate across models
+                        for comp in components:
+                            key = _norm_comp(comp)
                             try:
-                                value = metr[(metric_name, model)].iloc[0]
-                                formatted_metrics += f"  {model} : {value:.3f}\n"
+                                block = metr.xs(key, level="metric", axis=1)
+                                val = _agg[mode](block).iloc[0]
+                                formatted_metrics += f"{key} : {val:.3f}\n"
+                                printed_components.add(key)
                             except KeyError:
-                                formatted_metrics += f"  {model} : N/A\n"
-                else:
-                    raise ValueError("Invalid mode or missing models list.")
+                                formatted_metrics += f"{key} : N/A\n"
+                    elif mode == "models" and models:
+                        for comp in components:
+                            key = _norm_comp(comp)
+                            formatted_metrics += f"{key}:\n"
+                            try:
+                                block = metr.xs(key, level="metric", axis=1)
+                                for m in models:
+                                    formatted_metrics += f"  {m} : {block[m].iloc[0]:.3f}\n" if m in block.columns else f"  {m} : N/A\n"
+                                printed_components.add(key)
+                            except KeyError:
+                                formatted_metrics += "  N/A\n"
+                    else:
+                        raise ValueError("Invalid mode or missing models list for components.")
 
-                # Plot the text on the figure
+                # --- 2) Also print ANY OTHER REQUESTED METRICS not covered above (e.g., NSE) ---
+                remaining = [m for m in metrices if _norm_comp(m) not in printed_components]
+                if remaining:
+                    if isinstance(metr.columns, pd.MultiIndex):
+                        if mode in _agg:
+                            for metric_name in remaining:
+                                try:
+                                    block = metr.xs(metric_name, level="metric", axis=1)
+                                except KeyError:
+                                    formatted_metrics += f"{metric_name} : N/A\n"
+                                    continue
+                                val = _agg[mode](block).iloc[0]
+                                formatted_metrics += f"{metric_name} : {val:.3f}\n"
+                        elif mode == "models" and models:
+                            for metric_name in remaining:
+                                formatted_metrics += f"{metric_name}:\n"
+                                try:
+                                    block = metr.xs(metric_name, level="metric", axis=1)
+                                    for m in models:
+                                        formatted_metrics += f"  {m} : {block[m].iloc[0]:.3f}\n" if m in block.columns else f"  {m} : N/A\n"
+                                except KeyError:
+                                    formatted_metrics += "  N/A\n"
+                        else:
+                            raise ValueError("Invalid mode or missing models list.")
+                    else:
+                        # Simple (non-MultiIndex) case
+                        if mode in _agg:
+                            val = _agg[mode](metr).iloc[0]
+                            for metric_name in remaining:
+                                formatted_metrics += f"{metric_name} : {val:.3f}\n"
+                        else:
+                            raise ValueError("Per-model output requires MultiIndex metrics.")
+
+                # draw the text
                 font = {'family': 'sans-serif', 'weight': 'normal', 'size': text_size}
-                plt.text(metrics_adjust[0], metrics_adjust[1], formatted_metrics,
-                        ha='left', va='center', transform=ax.transAxes, fontdict=font,
-                        bbox=dict(boxstyle="round, pad=0.5,rounding_size=0.3", facecolor="0.8", edgecolor="k"))
+                plt.text(
+                    metrics_adjust[0], metrics_adjust[1], formatted_metrics,
+                    ha='left', va='center', transform=ax.transAxes, fontdict=font,
+                    bbox=dict(boxstyle="round, pad=0.5,rounding_size=0.3", facecolor="0.8", edgecolor="k")
+                )
+                plt.subplots_adjust(right=1 - plot_adjust)
 
-                plt.subplots_adjust(right = 1-plot_adjust)
 
             # Save or auto-save for large column counts
             auto_save = len(sims["sim_1"].columns) > 5 
@@ -608,7 +723,11 @@ def bounded_plot(
     transparency: Tuple[float, float] = [0.4],
     save: bool = False,
     save_as: Union[str, List[str]] = None,
-    dir: str = os.getcwd()
+    dir: str = os.getcwd(),
+    metrics_columns: int = 2,
+    metrics_col_spacing: float = 0.16,
+    metrics_row_spacing: float = 0.10,
+    metrics_anchor: Tuple[float, float] = (0.01, 0.95)
     ) -> plt.figure:
     """ 
     Plots time-series data with optional confidence bounds.
@@ -785,6 +904,7 @@ def bounded_plot(
     `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
     
     """
+    import math
 
     ## Check that the lines inputs are DataFrames
     if isinstance(lines, pd.DataFrame):
@@ -799,6 +919,8 @@ def bounded_plot(
         elif not isinstance(extra_lines, list):
             raise ValueError("Argument must be a dataframe or a list of dataframes.")
     
+    # Number of extra lines (used for indexing later)
+    extra_count = len(extra_lines) if extra_lines else 0
     upper_bounds = _normalize_bounds(upper_bounds, lines=lines)
     lower_bounds = _normalize_bounds(lower_bounds, lines=lines)
 
@@ -809,7 +931,9 @@ def bounded_plot(
     # Available line styles
     # Generate colors dynamically using Matplotlib colormap
     cmap = plt.cm.get_cmap("tab10", len(lines)+len(extra_lines) if extra_lines else len(lines))  # +1 for extra line
-    colors = [cmap(i) for i in range(len(lines)+len(extra_lines) if extra_lines else len(lines))]
+    colors = [tuple(float(x) for x in cmap(i))
+          for i in range(len(lines)+len(extra_lines) if extra_lines else len(lines))]
+
     # base_linestyles = ["-", "--", "-.", ":"]
     style = ('-',) * (len(lines)+len(extra_lines) if extra_lines else len(lines)) # default to solid lines unless overwritten
 
@@ -833,7 +957,12 @@ def bounded_plot(
 
     # Plotting
     num_columns = lines[0].shape[1]  # all lines have same number of columns
-    transparency = transparency * len(lines) # Extend transparency list to match number of lines
+    #transparency = transparency * len(lines) # Extend transparency list to match number of lines
+    if isinstance(transparency, (list, tuple)):
+        tp = list(transparency)
+    else:
+        tp = [float(transparency)]
+    transparency = (tp * (len(lines) or 1))[:len(lines)]
 
     for i in range(num_columns):
         fig, ax = plt.subplots(figsize=fig_size, facecolor='w', edgecolor='k')
@@ -841,9 +970,9 @@ def bounded_plot(
         # Plot extra lines (if any), column i
         if extra_lines:
             # z = 0 # Just to avoid erroring out if extra_lines is None
-            for z, extra_line in enumerate(extra_lines):
+            for j, extra_line in enumerate(extra_lines):
 
-                color, style = _parse_linestyle(linestyles[z])
+                color, style = _parse_linestyle(linestyles[j])
 
                 if step:
                     ax.step(
@@ -851,8 +980,8 @@ def bounded_plot(
                         extra_line.iloc[:, i],
                         color=color, 
                         linestyle=style,
-                        label=legend[z] if legend else "Extra Line",
-                        linewidth=linewidth[z],
+                        label=legend[j] if legend else "Extra Line",
+                        linewidth=linewidth[j],
                         where=where,
                     )
                 else:
@@ -861,8 +990,8 @@ def bounded_plot(
                         extra_line.iloc[:, i],
                         color=color, 
                         linestyle=style,
-                        label=legend[z] if legend else "Extra Line",
-                        linewidth=linewidth[z]
+                        label=legend[j] if legend else "Extra Line",
+                        linewidth=linewidth[j]
                     )
 
         # Plot each main line and its bounds
@@ -870,8 +999,10 @@ def bounded_plot(
             if not isinstance(line, pd.DataFrame):
                 raise ValueError("All items in 'lines' must be a DataFrame.")
             
-            color, style = _parse_linestyle(linestyles[line_index+z+1] if extra_lines else linestyles[line_index])
-            
+            color, style = _parse_linestyle(
+                linestyles[extra_count + line_index] if extra_count else linestyles[line_index]
+            )  # Parse the first linestyle for simulated data
+      
             if step:
                 ax.step(
                     line.index,
@@ -879,11 +1010,14 @@ def bounded_plot(
                     color = color, 
                     linestyle = style,
                     label = (
-                            legend[line_index+z+1] if legend and extra_lines
-                            else legend[line_index] if legend
-                            else f"Line {line_index+1}"
-                        ),
-                    linewidth= linewidth[line_index+z+1] if extra_lines else linewidth[line_index],
+                        legend[extra_count + line_index] if legend and extra_count
+                        else legend[line_index] if legend
+                        else f"Line {line_index+1}"
+                    ),
+                    linewidth = (
+                        linewidth[extra_count + line_index] if extra_count
+                        else linewidth[line_index]
+                    ),
                     where=where,
                 )
             else:
@@ -893,11 +1027,14 @@ def bounded_plot(
                     color = color, 
                     linestyle = style,
                     label = (
-                            legend[line_index+z+1] if legend and extra_lines
-                            else legend[line_index] if legend
-                            else f"Line {line_index+1}"
-                        ),
-                    linewidth=linewidth[line_index+z+1] if extra_lines else linewidth[line_index]
+                        legend[extra_count + line_index] if legend and extra_count
+                        else legend[line_index] if legend
+                        else f"Line {line_index+1}"
+                    ),
+                    linewidth = (
+                        linewidth[extra_count + line_index] if extra_count
+                        else linewidth[line_index]
+                    ),
                 )
 
             upper_obs = _prepare_bounds(upper_bounds, line_index, i)
@@ -940,22 +1077,34 @@ def bounded_plot(
                 # Join all metric results into one multiline string
                 text_block = '\n'.join(text_lines)
 
-                # Display the text in the plot (top-left corner)
-                plt.text(
-                    0.01, 0.95 - 0.10 * line_index,  # Offset based on line index
-                    s=text_block,
-                    transform=plt.gca().transAxes,
+                # Lay out metric boxes in columns (axes coordinates)
+                cols = max(1, int(metrics_columns))
+                rows = int(math.ceil(len(lines) / float(cols)))
+
+                # Place boxes column-major (fills down, then across)
+                col_idx = line_index // rows
+                row_idx = line_index % rows
+
+                x0, y0 = metrics_anchor
+                dx = float(metrics_col_spacing)
+                dy = float(metrics_row_spacing)
+
+                x = x0 + col_idx * dx
+                y = y0 - row_idx * dy
+
+                ax.text(
+                    x, y, text_block,
+                    transform=ax.transAxes,
                     fontsize=text_size,
-                    verticalalignment='top',
+                    va='top', ha='left',
                     bbox=dict(
                         boxstyle='round,pad=0.3',
-                        facecolor=color,
+                        facecolor=color,   # same color you already computed for this line
                         edgecolor='gray',
                         alpha=0.7
-                    )
-                )
-
-                
+                    ),
+                    zorder=5,
+                )                
 
         if padding:
             plt.xlim(lines[0].index[0], lines[0].index[-1])
@@ -1223,7 +1372,7 @@ def histogram(
 def scatter(
   grid: bool = False, 
   minor_grid: bool = False,
-  title: str = None, 
+  title: Union[str, List[str]] = None,   # <— allow list of titles
   legend: tuple[str, str] = None,
   labels: tuple[str, str] = ('Simulated Data', 'Observed Data'),
   fig_size: tuple[float, float] = (10, 6), 
@@ -1245,7 +1394,10 @@ def scatter(
   metrics_adjust: tuple[float, float] = (1.05, 0.5), 
   dir: str = os.getcwd(),
 
-  shapefile_path: str = "", 
+  shapefile_path: Union[str, List[str]] = "",
+  shape_styles: Optional[List[dict]] = None,   # one style dict per shapefile (optional)
+  focus_bbox: Optional[Tuple[float, float, float, float]] = None,  # (xmin,ymin,xmax,ymax)
+  focus_pad: float = 0.02,                     # fractional padding for axes limits
   x_axis: pd.DataFrame = None, 
   y_axis: pd.DataFrame = None,
   metric: str = "", 
@@ -1253,8 +1405,11 @@ def scatter(
   simulated: pd.DataFrame = None,
   markersize: int = 10,
   cmap: str='jet',
-  vmin: float=None,
-  vmax:float=None
+  vmin: Union[float, Dict[str, float], None] = None,  # <— allow dict
+  vmax: Union[float, Dict[str, float], None] = None,  # <— allow dict
+  # NEW:
+  metric_options: dict | None = None,             # e.g. {"KGE": {"return_kge_components": True}}
+  components: tuple[str, ...] | None = None          # when KGE components requested: ("KGE","r","alpha","beta")  
   ) -> plt.figure:
     """
     Creates a scatter plot comparing observed and simulated data, with optional features like 
@@ -1520,10 +1675,10 @@ def scatter(
 
             
             if line45:
-                max = np.nanmax([max_sim, max_obs])
-                min = np.nanmin([min_sim, min_obs])
+                max_val = np.nanmax([max_sim, max_obs])
+                min_val = np.nanmin([min_sim, min_obs])
                 # Plotting the 45 degree line
-                ax.plot(np.arange(int(min), int(max) + 1), np.arange(int(min), int(max) + 1), 'r--', label='45$^\u00b0$ Line')
+                ax.plot(np.arange(int(min_val), int(max_val) + 1), np.arange(int(min_val), int(max_val) + 1), 'r--', label='45$^\u00b0$ Line')
 
             
             if best_fit or line45:
@@ -1534,141 +1689,417 @@ def scatter(
             # Placing Metrics on the Plot if requested
             if metrices:
                 observed = obs.iloc[:, [i]]
-                sim_list = [sims[f"sim_{j}"].iloc[:,[i]] for j in range(1, num_sim+1)]
-                metr = metrics.calculate_metrics(observed=observed, simulated=sim_list, metrices=metrices)
+                sim_list = [sims[f"sim_{j}"].iloc[:, [i]] for j in range(1, num_sim + 1)]
+
+                metr = metrics.calculate_metrics(
+                    observed=observed,
+                    simulated=sim_list,
+                    metrices=metrices,
+                    metric_options=metric_options,   # ← pass options for KGE components
+                )
+
                 formatted_metrics = "Metrics:\n"
 
-                if mode == "median":
-                    assert isinstance(metr, pd.DataFrame)
-                    for metric_name in metrices:
-                        median_series = metr[metric_name].median(axis=1)
-                        formatted_metrics += f"{metric_name} : {median_series.iloc[0]:.3f}\n"
+                def _norm_comp(c: str) -> str:
+                    m = c.strip().lower()
+                    return {"kge": "KGE", "r": "r", "alpha": "alpha", "beta": "beta"}.get(m, c)
 
-                elif mode == "models" and models:
-                    assert isinstance(metr, pd.DataFrame)
-                    for metric_name in metrices:
-                        formatted_metrics += f"{metric_name}:\n"
-                        for model in models:
+                _agg = {
+                    "median": lambda df: df.median(axis=1),
+                    "mean":   lambda df: df.mean(axis=1),
+                    "mode":   lambda df: df.mode(axis=1).iloc[:, 0] if not df.mode(axis=1).empty else np.nan,
+                    "max":    lambda df: df.max(axis=1),
+                    "min":    lambda df: df.min(axis=1),
+                    "std":    lambda df: df.std(axis=1),
+                    "sum":    lambda df: df.sum(axis=1),
+                }
+
+                # --- 1) Components first (if requested) ---
+                printed_components = set()
+                if isinstance(metr.columns, pd.MultiIndex) and components:
+                    if mode in _agg:  # aggregate across models
+                        for comp in components:
+                            key = _norm_comp(comp)
                             try:
-                                value = metr[(metric_name, model)].iloc[0]
-                                formatted_metrics += f"  {model} : {value:.3f}\n"
+                                block = metr.xs(key, level="metric", axis=1)
+                                val = _agg[mode](block).iloc[0]
+                                formatted_metrics += f"{key} : {val:.3f}\n"
+                                printed_components.add(key)
                             except KeyError:
-                                formatted_metrics += f"  {model} : N/A\n"
-                else:
-                    raise ValueError("Invalid mode or missing models list.")
+                                formatted_metrics += f"{key} : N/A\n"
+                    elif mode == "models" and models:
+                        for comp in components:
+                            key = _norm_comp(comp)
+                            formatted_metrics += f"{key}:\n"
+                            try:
+                                block = metr.xs(key, level="metric", axis=1)
+                                for m in models:
+                                    formatted_metrics += (
+                                        f"  {m} : {block[m].iloc[0]:.3f}\n" if m in block.columns else f"  {m} : N/A\n"
+                                    )
+                                printed_components.add(key)
+                            except KeyError:
+                                formatted_metrics += "  N/A\n"
+                    else:
+                        raise ValueError("Invalid mode or missing models list for components.")
 
-                # Plot the text on the figure
+                # --- 2) Any remaining scalar metrics (e.g., NSE) ---
+                remaining = [m for m in metrices if _norm_comp(m) not in printed_components]
+                if remaining:
+                    if isinstance(metr.columns, pd.MultiIndex):
+                        if mode in _agg:
+                            for metric_name in remaining:
+                                try:
+                                    block = metr.xs(metric_name, level="metric", axis=1)
+                                except KeyError:
+                                    formatted_metrics += f"{metric_name} : N/A\n"
+                                    continue
+                                val = _agg[mode](block).iloc[0]
+                                formatted_metrics += f"{metric_name} : {val:.3f}\n"
+                        elif mode == "models" and models:
+                            for metric_name in remaining:
+                                formatted_metrics += f"{metric_name}:\n"
+                                try:
+                                    block = metr.xs(metric_name, level="metric", axis=1)
+                                    for m in models:
+                                        formatted_metrics += (
+                                            f"  {m} : {block[m].iloc[0]:.3f}\n" if m in block.columns else f"  {m} : N/A\n"
+                                        )
+                                except KeyError:
+                                    formatted_metrics += "  N/A\n"
+                        else:
+                            raise ValueError("Invalid mode or missing models list.")
+                    else:
+                        if mode in _agg:
+                            val = _agg[mode](metr).iloc[0]
+                            for metric_name in remaining:
+                                formatted_metrics += f"{metric_name} : {val:.3f}\n"
+                        else:
+                            raise ValueError("Per-model output requires MultiIndex metrics.")
+
+                # draw the text
                 font = {'family': 'sans-serif', 'weight': 'normal', 'size': text_size}
-                plt.text(metrics_adjust[0], metrics_adjust[1], formatted_metrics,
-                        ha='left', va='center', transform=ax.transAxes, fontdict=font,
-                        bbox=dict(boxstyle="round, pad=0.5,rounding_size=0.3", facecolor="0.8", edgecolor="k"))
-
-                plt.subplots_adjust(right = 1-plot_adjust)
-
+                plt.text(
+                    metrics_adjust[0], metrics_adjust[1], formatted_metrics,
+                    ha='left', va='center', transform=ax.transAxes, fontdict=font,
+                    bbox=dict(boxstyle="round, pad=0.5,rounding_size=0.3", facecolor="0.8", edgecolor="k")
+                )
+                plt.subplots_adjust(right=1 - plot_adjust)
             # Save or auto-save for large column counts
             auto_save = len(obs.columns) > 5
             _save_or_display_plot(fig, save or auto_save, save_as, dir, i, "scatter-plot")
     else:
-        # use simultated to determine if single or multiple models
+        # --- normalize simulated to list ---
         if isinstance(simulated, pd.DataFrame):
-            simulated = [simulated] 
-        # Calculate metrics: returns MultiIndex column DataFrame
-        metr = metrics.calculate_metrics(observed=observed, simulated=simulated, metrices=[metric])
-        # metric_df = metr[metric]  # e.g., metr["KGE"] gives all models for KGE
-        # print(f"Metrics to plot: \n{metr}\n")
+            simulated = [simulated]
 
-        # Determine values to plot
+        # --- compute metrics (pass through options so components like KGE parts are available) ---
+        metr = metrics.calculate_metrics(
+            observed=observed,
+            simulated=simulated,
+            metrices=[metric],
+            metric_options=metric_options,
+        )
+
+        # --- build the values/columns we will plot (same logic as before) ---
         mode_list = ("median", "mean", "mode", "max", "min", "std", "sum")
-        if mode in mode_list:
-            # Map mode strings to appropriate aggregation functions
-            agg_func_map = {
-                "median": lambda df: df.median(axis=1),
-                "mean": lambda df: df.mean(axis=1),
-                "mode": lambda df: df.mode(axis=1).iloc[:, 0] if not df.mode(axis=1).empty else np.nan,
-                "max": lambda df: df.max(axis=1),
-                "min": lambda df: df.min(axis=1),
-                "std": lambda df: df.std(axis=1),
-                "sum": lambda df: df.sum(axis=1)
-            }
 
-            # Handle multi-index column DataFrame
-            if isinstance(metr.columns, pd.MultiIndex):
+        def _norm_comp(c: str) -> str:
+            m = c.strip().lower()
+            if m == "kge":   return "KGE"
+            if m == "r":     return "r"
+            if m == "alpha": return "alpha"
+            if m == "beta":  return "beta"
+            return c
+
+        if isinstance(metr.columns, pd.MultiIndex) and components:
+            frames, out_cols = [], []
+            for comp in components:
+                comp_key = _norm_comp(comp)
                 try:
-                    data_block = metr.loc[:, metric]  # extract the DataFrame (e.g., KGE for all models)
+                    data_block = metr.xs(comp_key, level="metric", axis=1)
                 except KeyError:
-                    raise ValueError(f"Metric '{metric}' not found in metrics DataFrame.")
-            else:
-                data_block = metr  # Fallback if not multi-indexed
+                    raise ValueError(f"Requested component '{comp}' not present in metrics output.")
 
-            # Apply the appropriate aggregation
-            agg_func = agg_func_map[mode]
-            agg_result = agg_func(data_block)
+                if mode in mode_list:
+                    agg_map = {
+                        "median": lambda df: df.median(axis=1),
+                        "mean":   lambda df: df.mean(axis=1),
+                        "mode":   lambda df: df.mode(axis=1).iloc[:, 0] if not df.mode(axis=1).empty else np.nan,
+                        "max":    lambda df: df.max(axis=1),
+                        "min":    lambda df: df.min(axis=1),
+                        "std":    lambda df: df.std(axis=1),
+                        "sum":    lambda df: df.sum(axis=1),
+                    }
+                    agg_result = agg_map[mode](data_block)
+                    colname = f"{comp_key}_{mode}"
+                    frames.append(pd.DataFrame({colname: agg_result}))
+                    out_cols.append(colname)
+                elif mode == "models" and models:
+                    available = list(data_block.columns)
+                    use = [m for m in models if m in available]
+                    if not use:
+                        continue
+                    sub = data_block.loc[:, use]
+                    sub.columns = [f"{comp_key}_{m}" for m in use]
+                    frames.append(sub)
+                    out_cols.extend(sub.columns.tolist())
+                else:
+                    raise ValueError("Invalid mode or missing model list for 'models' mode'.")
 
-            values = pd.DataFrame({f"{metric}_{mode}": agg_result})
-            columns = [f"{metric}_{mode}"]
-
-        elif mode == "models" and models:
-            # Assume columns are like: MultiIndex([("MSE", "model1"), ("MSE", "model2"), ...])
-            values = metr.loc[:, (metric, models)]
-            values.columns = models  # Flatten columns for plotting
-            columns = values.columns.tolist()
+            values  = pd.concat(frames, axis=1)
+            columns = out_cols
 
         else:
-            raise ValueError("Invalid mode or missing model list for 'models' mode")
+            if mode in mode_list:
+                agg_map = {
+                    "median": lambda df: df.median(axis=1),
+                    "mean":   lambda df: df.mean(axis=1),
+                    "mode":   lambda df: df.mode(axis=1).iloc[:, 0] if not df.mode(axis=1).empty else np.nan,
+                    "max":    lambda df: df.max(axis=1),
+                    "min":    lambda df: df.min(axis=1),
+                    "std":    lambda df: df.std(axis=1),
+                    "sum":    lambda df: df.sum(axis=1),
+                }
+                if isinstance(metr.columns, pd.MultiIndex):
+                    try:
+                        data_block = metr.loc[:, metric]
+                    except KeyError:
+                        raise ValueError(f"Metric '{metric}' not found in metrics DataFrame.")
+                else:
+                    data_block = metr
+                agg_result = agg_map[mode](data_block)
+                values  = pd.DataFrame({f"{metric}_{mode}": agg_result})
+                columns = [f"{metric}_{mode}"]
+            elif mode == "models" and models:
+                try:
+                    data_block = metr.loc[:, metric]
+                except KeyError:
+                    raise ValueError(
+                        f"Metric '{metric}' not found in metrics DataFrame. "
+                        f"Available metric tops: {list(metr.columns.get_level_values(0).unique())}"
+                    )
+                available = list(data_block.columns)
+                use = [m for m in models if m in available]
+                if not use:
+                    raise ValueError(f"None of the requested models {models} exist for '{metric}'. Available: {available}")
+                values  = data_block.loc[:, use]
+                values.columns = use
+                columns = use
+            else:
+                raise ValueError("Invalid mode or missing model list for 'models' mode")
+        # --- helpers that were defined in the removed section ---
 
+        def _parse_comp_and_model(colname: str) -> tuple[str, Optional[str]]:
+            """
+            Split a column name like 'KGE_model1' into ('KGE','model1').
+            If there's no underscore, treat the whole thing as the component.
+            """
+            if "_" in colname:
+                comp, rest = colname.split("_", 1)
+                return comp, rest
+            return colname, None
 
-        # print(f"Values to plot: \n{values}\n")
+        def _select_vbound(bound, comp_key: str):
+            """
+            If vmin/vmax is a dict, pick the bound for the given component key.
+            Accepts either exact key or lowercased fallback. Otherwise return scalar/None.
+            """
+            if isinstance(bound, dict):
+                k = comp_key.strip()
+                return bound.get(k, bound.get(k.lower()))
+            return bound
 
-        # print(f"Columns to plot: \n{columns}\n")
-    
-        # Create DataFrame for coordinates
+        def _get_title_for(idx: int, colname: str) -> Optional[str]:
+                    """
+                    Resolve per-panel title:
+                    - if `title` is a list, use the idx-th entry (if present)
+                    - if `title` is a string, allow {col}, {comp}, {model} placeholders
+                    - otherwise, no title
+                    """
+                    # list of titles
+                    if isinstance(title, list):
+                        if len(title) == 0:
+                            return None
+                        if idx < len(title):
+                            return title[idx]
+                        # fallback if list is shorter than panels
+                        return f"{colname}"
+
+                    # single template string
+                    if isinstance(title, str):
+                        comp, model = _parse_comp_and_model(colname)
+                        return title.format(col=colname, comp=comp, model=(model or ""))
+
+                    return None  # no title supplied
+        def _add_side_colorbar(
+            fig, ax, sm, label: str, font_size: int,
+            *,
+            thickness: float = 0.028,   # width of the bar in figure coords
+            gap: float = 0.012,         # gap between map and bar in figure coords
+            height_ratio: float = 1.0,  # 1.0 = full map height; 0.85 = 85% etc.
+            center: bool = True         # vertically center the shorter bar
+        ):
+            # Make sure layout is applied so ax position is final
+            fig.canvas.draw()  # important: get *final* bbox of ax
+            pos = ax.get_position()   # Bbox in figure coords (x0,y0,width,height)
+            bar_h = pos.height * height_ratio
+            if center:
+                y0 = pos.y0 + 0.5 * (pos.height - bar_h)
+            else:
+                y0 = pos.y0
+            x0 = pos.x1 + gap
+            cax = fig.add_axes([x0, y0, thickness, bar_h])
+            cb = fig.colorbar(sm, cax=cax)
+            cb.set_label(label, fontsize=font_size)
+            cb.ax.tick_params(labelsize=font_size-1)
+            return cb
+
+        # --- Create base XY DataFrame used to attach plotted values ---
         base_data = pd.DataFrame({
-            'latitude': y_axis.values,
-            'longitude': x_axis.values
+            "latitude":  y_axis.values,
+            "longitude": x_axis.values,
         })
 
-        # Read the shapefile using GeoPandas
-        gdf_shapefile = gpd.read_file(shapefile_path)
- 
-        # Plotting logic
-        for idx, col in enumerate(columns):
-            fig = plt.figure(figsize=fig_size, dpi=150, frameon=True)
-            ax = fig.add_axes([0, 0., .4, .1])
+        # --- Read one or many shapefiles into a list of layers ---
+        if isinstance(shapefile_path, (list, tuple)):
+            shp_paths = list(shapefile_path)
+        else:
+            shp_paths = [shapefile_path]
 
-            # Create per-plot DataFrame
+        layers = [gpd.read_file(p) for p in shp_paths]
+
+        # Styles for each layer
+        if shape_styles is None:
+            shape_styles = [{} for _ in layers]
+        elif len(shape_styles) != len(layers):
+            raise ValueError("shape_styles length must match number of shapefiles")
+
+        # Combined bounds helper
+        def _combined_bounds(gs: List[gpd.GeoDataFrame]):
+            xmin = ymin = np.inf
+            xmax = ymax = -np.inf
+            for gg in gs:
+                b = gg.total_bounds  # (xmin, ymin, xmax, ymax)
+                xmin = min(xmin, b[0]); ymin = min(ymin, b[1])
+                xmax = max(xmax, b[2]); ymax = max(ymax, b[3])
+            return xmin, ymin, xmax, ymax
+
+        # Choose a CRS for points from the first layer that has one (fallback to WGS84)
+        base_crs = next((g.crs for g in layers if g.crs is not None), None) or "EPSG:4326"
+
+
+        # --- PLOTTING LOOP: one figure per column in `columns` ---
+        for idx, col in enumerate(columns):
+            # attach the value column to the XY table and build points GeoDataFrame
             data = base_data.copy()
             values_reset = values.reset_index(drop=True)
             data[col] = values_reset[col]
+            geometry_ll = [Point(xy) for xy in zip(data["longitude"], data["latitude"])]
+            gdf_points = gpd.GeoDataFrame(data, geometry=geometry_ll, crs=base_crs)
 
-            geometry = [Point(xy) for xy in zip(data['longitude'], data['latitude'])]
-            gdf_points = gpd.GeoDataFrame(data, geometry=geometry)
+            # one axes only (no GridSpec/cax)
+            fig, ax = plt.subplots(figsize=fig_size, dpi=300)
 
-            # print(f"Metric data head:\n{data.head()}")
-            # print(f"Unique metric values: {data[col].unique()}")
-            # print(f"Geometry head:\n{geometry[:5]}")
+            for gi, (g, st) in enumerate(zip(layers, shape_styles)):
+                st = st.copy()
+                # defaults if not specified in style
+                facecolor = st.pop("facecolor", "none")   # only used for polygons
+                edgecolor = st.pop("edgecolor", "0.25")
+                linewidth = st.pop("linewidth", 0.8)
+                alpha     = st.pop("alpha", 1.0)
+                zorder    = st.pop("zorder", 1 + gi)
+                layer_ms = st.pop("markersize", 20)      # only matters for point layers
+                layer_marker     = st.pop("marker", "o")
 
-            # Base map
-            gdf_shapefile.plot(ax=ax, edgecolor='black', facecolor="None", linewidth=0.5)
+                # Figure out what kind of layer this is
+                geom_types = set(g.geom_type.str.lower())  # e.g. {'polygon'}, {'linestring','multilinestring'}, etc.
+                is_line    = any("line"  in t for t in geom_types)
+                is_poly    = any("polygon" in t for t in geom_types)
+                is_point   = any("point" in t for t in geom_types)
 
-            # Plot metric values
-            legend_label = f"{col}" if mode == "models" else f"{metric} ({mode})" if len(simulated) > 1 else metric
-            gdf_points.plot(ax=ax, column=col, cmap=cmap, vmin=vmin, vmax=vmax,
-                            legend=True, markersize=markersize, label=legend_label,
-                            legend_kwds={'label': legend_label, "orientation": "vertical"})
-            
-            # Manually get the colorbar from the figure
-            cbar = plt.gcf().get_axes()[-1]  # Get the colorbar axis
+                if is_line:
+                    # rivers, roads, etc. → draw as lines (NO .boundary here)
+                    g.plot(ax=ax, color=edgecolor, linewidth=linewidth, alpha=alpha, zorder=zorder)
 
-            # ✅ Adjust tick label font size
-            cbar.tick_params(labelsize=font_size)
+                elif is_poly:
+                    # admin areas, basins, etc.
+                    if facecolor == "none":
+                        # outline only
+                        g.boundary.plot(ax=ax, color=edgecolor, linewidth=linewidth, alpha=alpha, zorder=zorder)
+                    else:
+                        # filled polygon
+                        g.plot(ax=ax, facecolor=facecolor, edgecolor=edgecolor, linewidth=linewidth, alpha=alpha, zorder=zorder)
 
+                elif is_point:
+                    # point layers (cities, gauges) if any
+                    g.plot(ax=ax, color=edgecolor, markersize=layer_ms, marker=layer_marker, linewidth=0, alpha=alpha, zorder=zorder)
 
-            _finalize_plot(ax, grid, minor_grid, font_size, labels, title, "shapefile-plot", idx)
-        
-            # Save or auto-save for large column counts
+                else:
+                    # fallback: just try plotting with the edgecolor (covers odd geometries)
+                    g.plot(ax=ax, color=edgecolor, linewidth=linewidth, alpha=alpha, zorder=zorder)
+
+            # resolve vmin/vmax and label for this panel
+            if components:
+                comp_key, model_key = _parse_comp_and_model(col)
+            else:
+                comp_key, model_key = metric, col
+
+            vmin_panel = _select_vbound(vmin, comp_key)
+            vmax_panel = _select_vbound(vmax, comp_key)
+            single_model = (mode != "models") or (models is None) or (len(models) <= 1)
+            legend_label = comp_key if single_model else f"{comp_key} - {model_key}"
+
+            # plot points (no legend=True → avoids auto colorbar)
+            gdf_points.plot(
+                ax=ax,
+                column=col,
+                cmap=cmap,
+                vmin=vmin_panel, vmax=vmax_panel,
+                markersize=markersize,
+                legend=False,
+                zorder=10,
+            )
+
+            # ScalarMappable for the colorbar we’ll add after layout
+            sm = plt.cm.ScalarMappable(
+                norm=plt.Normalize(vmin=vmin_panel, vmax=vmax_panel),
+                cmap=plt.get_cmap(cmap)
+            )
+            sm.set_array([])
+
+            # extent: focus box if provided, else union of all layers; apply fractional padding
+            if focus_bbox is not None:
+                xmin, ymin, xmax, ymax = focus_bbox
+            else:
+                xmin, ymin, xmax, ymax = _combined_bounds(layers)
+            dx, dy = focus_pad * (xmax - xmin), focus_pad * (ymax - ymin)
+            ax.set_xlim(xmin - dx, xmax + dx)
+            ax.set_ylim(ymin - dy, ymax + dy)
+
+            # cosmetics
+            if grid:
+                ax.grid(which="major", linestyle=":", linewidth=0.6, color="0.7", alpha=0.7)
+            if minor_grid:
+                ax.minorticks_on()
+                ax.grid(which="minor", linestyle=":", linewidth=0.4, color="0.8", alpha=0.6)
+
+            # title + layout
+            panel_title = _get_title_for(idx, col)
+            _finalize_plot(ax, grid, minor_grid, font_size, labels, panel_title, "shapefile-plot", idx)
+
+            # add a side colorbar sized to the map’s final height
+            _add_side_colorbar(
+                fig, ax, sm, legend_label, font_size,
+                thickness=0.028,  # width of bar (figure coords)
+                gap=0.012,        # gap from map
+                height_ratio=1.0, # 1.0 = match map height
+                center=True
+            )
+
             _save_or_display_plot(fig, save, save_as, dir, i=idx, type="shapefile-plot")
 
-
+    
 def qqplot(
     grid: bool = False, 
     minor_grid: bool = False,
