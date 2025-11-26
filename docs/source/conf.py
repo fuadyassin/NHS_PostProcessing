@@ -16,8 +16,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'NHS_postprocessing'
-copyright = f'{datetime.datetime.now().year}, Uchechukwu Udenze'
-author = 'Uchechukwu Udenze'
+copyright = f'{datetime.datetime.now().year}, Fuad Yassin'
+author = 'Fuad Yassin'
 release = "1"
 
 # -- General configuration ---------------------------------------------------

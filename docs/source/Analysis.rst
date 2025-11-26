@@ -82,4 +82,4 @@ This section provides a comprehensive guide to performing a forecast analysis us
 The analysis focuses on evaluating the performance of forecasted streamflow data across multiple stations and periods.
 
 
-If you have any comments, please reach out to Uchechukwu UDENZE at uchechukwu.udenze@ec.gc.ca or Fuad Yassin at fuad.yassin@ec.gc.ca.
+If you have any comments, please reach out to Fuad Yassin at fuad.yassin@ec.gc.ca or Fuad Yassin at fuad.yassin@ec.gc.ca.

@@ -30,4 +30,4 @@ The link to the latest version of the documentation page is available [here](htt
 
 ## Contact
 
-For questions, inquiries regarding the usasge of these repositories feel free to use the [discussion](https://github.com/fuadyassin/NHS_PostProcessing/discussions) board or reach me by email Uchechukwu.Udenze@ec.gc.ca if its urgent or requires special attention. For bug reports and feature requests, please open an [issue](https://github.com/fuadyassin/NHS_PostProcessing/issues) on the GitHub page
+For questions, inquiries regarding the usasge of these repositories feel free to use the [discussion](https://github.com/fuadyassin/NHS_PostProcessing/discussions) board or reach me by email fuad.yassin@ec.gc.ca if its urgent or requires special attention. For bug reports and feature requests, please open an [issue](https://github.com/fuadyassin/NHS_PostProcessing/issues) on the GitHub page

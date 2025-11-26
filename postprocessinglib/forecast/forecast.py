@@ -91,8 +91,8 @@ natalie.gervasi@ec.gc.ca
 
 ## Last Modified
 September 2024 
-By Uchechukwu UDENZE
-Uchechukwu.Udenze@ec.gc.ca
+By Fuad Yassin
+fuad.yassin@ec.gc.ca
 
 """
 
