@@ -1,7 +1,10 @@
 version: 2
 
 # No PDF/EPUB builds on RTD for now
-formats: []   # or just omit the whole `formats:` block
+#formats: []   # or just omit the whole `formats:` block
+formats:
+  - epub
+  - pdf
 
 build:
   os: ubuntu-22.04
