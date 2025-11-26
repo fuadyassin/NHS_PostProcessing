@@ -1,6 +1,6 @@
 # National Hydrologic Services - Post Processing Library
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/UchechukwuUdenze/NHS_PostProcessing/main?%2FHEAD=&urlpath=%2Fdoc%2Ftree%2Fdocs%2Fsource%2Fnotebooks%2F)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/fuadyassin/NHS_PostProcessing/main?%2FHEAD=&urlpath=%2Fdoc%2Ftree%2Fdocs%2Fsource%2Fnotebooks%2F)
 
 <mark>When using the binder link, navigate to docs, source and then notebooks</mark>
 
@@ -26,8 +26,8 @@ The post processing library provides tools to aid with
 The link to the latest version of the documentation page is available [here](https://nhs-postprocessing.readthedocs.io/en/latest/) </mark>
 
 - Documentation: [NHS_postprocessing ReadTheDocs](https://nhs-postprocessing.readthedocs.io/en/stable/)
-- Bug reports/Feature Requests: [Issues](https://github.com/UchechukwuUdenze/NHS_PostProcessing/issues)
+- Bug reports/Feature Requests: [Issues](https://github.com/fuadyassin/NHS_PostProcessing/issues)
 
 ## Contact
 
-For questions, inquiries regarding the usasge of these repositories feel free to use the [discussion](https://github.com/UchechukwuUdenze/NHS_PostProcessing/discussions) board or reach me by email Uchechukwu.Udenze@ec.gc.ca if its urgent or requires special attention. For bug reports and feature requests, please open an [issue](https://github.com/UchechukwuUdenze/NHS_PostProcessing/issues) on the GitHub page
+For questions, inquiries regarding the usasge of these repositories feel free to use the [discussion](https://github.com/fuadyassin/NHS_PostProcessing/discussions) board or reach me by email Uchechukwu.Udenze@ec.gc.ca if its urgent or requires special attention. For bug reports and feature requests, please open an [issue](https://github.com/fuadyassin/NHS_PostProcessing/issues) on the GitHub page

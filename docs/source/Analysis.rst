@@ -32,7 +32,7 @@ Steps:
   - Ensure that the input data files are correctly formatted and located in the specified directory.
   - The code assumes that the streamflow data is structured with columns for date, station ID, and streamflow values.
   - Ensure that your environment contains all the necessary dependencies, including `pandas`, `matplotlib`, and `postprocessinglib` as defined in the environment file linked here 
-    `environment.yml <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/environments>`_.
+    `environment.yml <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/environments>`_.
   - Ensure that the `postprocessinglib` library is installed and properly configured in your Python environment.
 
 

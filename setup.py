@@ -19,9 +19,9 @@ setup(
     ],
     url='https://nhs-postprocessing.readthedocs.io/en/stable/', 
     project_urls={
-        'Visualization': 'https://github.com/users/UchechukwuUdenze/projects/4',
-        'Data Manipulation': 'https://github.com/users/UchechukwuUdenze/projects/2',
-        'Documentation': 'https://github.com/users/UchechukwuUdenze/projects/5',
+        'Visualization': 'https://github.com/users/fuadyassin/projects/4',
+        'Data Manipulation': 'https://github.com/users/fuadyassin/projects/2',
+        'Documentation': 'https://github.com/users/fuadyassin/projects/5',
     },  
     author='Uchechukwu Udenze',
     author_email='uchechukwu.udenze@ec.gc.ca',
