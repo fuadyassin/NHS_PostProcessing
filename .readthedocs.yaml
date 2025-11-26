@@ -24,7 +24,7 @@ build:
 
         # 2) Run latexmk inside that temp directory
         #    assuming latexmkrc is in the repo root; adjust ../latexmkrc if not
-        - cd _build/latex && latexmk -r ../latexmkrc -pdf -f -dvi- -ps- -jobname=nhs-postprocessing -interaction=nonstopmode
+        - cd _build/latex && latexmk -pdf -f -dvi- -ps- -jobname=nhs-postprocessing -interaction=nonstopmode
 
         # 3) Copy ONLY the final PDF into the RTD pdf output dir
         - mkdir -p $READTHEDOCS_OUTPUT/pdf
