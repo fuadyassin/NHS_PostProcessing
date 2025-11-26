@@ -4,7 +4,7 @@ version: 2
 #formats: []   # or just omit the whole `formats:` block
 formats:
   - epub
-  - pdf
+  #- pdf
 
 build:
   os: ubuntu-22.04
