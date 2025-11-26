@@ -180,7 +180,7 @@ python-dateutil==2.9.0.post0
     #   pandas
 pytz==2025.2
     # via pandas
-pywin32==303 ; sys_platform == "win32"
+pywin32>=306 ; sys_platform == "win32"
     # via jupyter-core
 pyyaml==6.0.2
     # via owslib

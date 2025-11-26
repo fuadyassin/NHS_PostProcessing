@@ -54,3 +54,15 @@ html_context = {
 
 # -- Napoleon autodoc options -------------------------------------------------
 napoleon_numpy_docstring = True
+latex_elements = {
+    'preamble': r'''
+\ExplSyntaxOn
+\cs_if_exist:NF \SuspendTagging { \cs_new_protected:Npn \SuspendTagging {} }
+\cs_if_exist:NF \ResumeTagging  { \cs_new_protected:Npn \ResumeTagging  {} }
+\ExplSyntaxOff
+'''
+}
+# Use "standard" LaTeX tables instead of "tabulary" to avoid PDF build issues
+latex_table_style = 'standard'
+
+
