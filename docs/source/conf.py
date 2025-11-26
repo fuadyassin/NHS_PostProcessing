@@ -47,22 +47,13 @@ html_static_path = []
 pygments_style = 'sphinx'
 html_context = {
   'display_github': True,
-  'github_user': 'UchechukwuUdenze',
+  'github_user': 'fuadyassin',
   'github_repo': 'NHS_PostProcessing',
   'github_version': 'main/docs/source/'
 }
 
 # -- Napoleon autodoc options -------------------------------------------------
 napoleon_numpy_docstring = True
-latex_elements = {
-    'preamble': r'''
-\ExplSyntaxOn
-\cs_if_exist:NF \SuspendTagging { \cs_new_protected:Npn \SuspendTagging {} }
-\cs_if_exist:NF \ResumeTagging  { \cs_new_protected:Npn \ResumeTagging  {} }
-\ExplSyntaxOff
-'''
-}
-# Use "standard" LaTeX tables instead of "tabulary" to avoid PDF build issues
-latex_table_style = 'standard'
+
 
 
