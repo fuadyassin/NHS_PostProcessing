@@ -52,6 +52,8 @@ html_context = {
   'github_version': 'main/docs/source/'
 }
 
+latex_engine = 'lualatex'
+
 # -- Napoleon autodoc options -------------------------------------------------
 napoleon_numpy_docstring = True
 
