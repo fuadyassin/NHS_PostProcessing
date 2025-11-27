@@ -80,6 +80,7 @@ All tutorials are available in the notebooks folder `here <https://github.com/fu
    Data
    Metrics
    Visualization
+   Forecast
    Analysis
    Contribute
 

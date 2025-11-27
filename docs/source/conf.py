@@ -43,7 +43,7 @@ exclude_patterns = ['**.ipynb_checkpoints', '_build']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ['_static']
+html_static_path = []
 pygments_style = 'sphinx'
 html_context = {
   'display_github': True,
@@ -52,5 +52,10 @@ html_context = {
   'github_version': 'main/docs/source/'
 }
 
+latex_engine = 'lualatex'
+
 # -- Napoleon autodoc options -------------------------------------------------
 napoleon_numpy_docstring = True
+
+
+

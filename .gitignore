@@ -1,3 +1,6 @@
+venv/
+Analysis.ipynb
+grand_*
 TO-DO.txt
 *.egg-info/
 dist/
