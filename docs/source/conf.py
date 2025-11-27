@@ -16,8 +16,8 @@ sys.path.insert(0, os.path.abspath('../../'))
 # -- Project information -----------------------------------------------------
 
 project = 'NHS_postprocessing'
-copyright = f'{datetime.datetime.now().year}, Uchechukwu Udenze'
-author = 'Uchechukwu Udenze'
+copyright = f'{datetime.datetime.now().year}, Fuad Yassin'
+author = 'Fuad Yassin'
 release = "1"
 
 # -- General configuration ---------------------------------------------------
@@ -47,7 +47,7 @@ html_static_path = ['_static']
 pygments_style = 'sphinx'
 html_context = {
   'display_github': True,
-  'github_user': 'UchechukwuUdenze',
+  'github_user': 'fuadyassin',
   'github_repo': 'NHS_PostProcessing',
   'github_version': 'main/docs/source/'
 }

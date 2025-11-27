@@ -346,7 +346,7 @@ def plot(
 
     .. image:: ../Figures/plot3_example.png
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
 
     Notes
     -----
@@ -707,7 +707,7 @@ def bounded_plot(
 
     .. image:: ../Figures/bounded_plot_example_3.png
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
     
     """
 
@@ -1005,7 +1005,7 @@ def histogram(
 
     .. image:: ../Figures/hist3_Example.png
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
 
     """
     # Assign the data based on inputs
@@ -1281,7 +1281,7 @@ def scatter(
 
     .. image:: ../Figures/SRB_subDrainage_showing_KGE.png
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
 
     """
     # Plotting the Data
@@ -1607,7 +1607,7 @@ def qqplot(
 
     .. image:: ../Figures/qqplot_example.png
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
 
     """
     def _adjust_color_brightness(color, amount=1.0):
@@ -1805,7 +1805,7 @@ def flow_duration_curve(
 
     .. image:: ../Figures/FDC_Example_2.png
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-visualizations.ipynb>`_
     """
 
     if df is None:

@@ -55,7 +55,7 @@ def available_metrics() -> list[int]:
         "TTCoM - Time to Centre of Mass", "SPOD - Spring Pulse ONset Delay", 
         'FDC Slope - Slope of the Flow Duration Curve' ]
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """
     metrics = [
@@ -126,7 +126,7 @@ def mse(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
         Station 1  0.22170
         Station 2  0.08079
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """     
     if (isinstance(simulated, pd.DataFrame)):
@@ -214,7 +214,7 @@ def rmse(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFram
         Station 1  0.3760
         Station 2  0.3398
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """   
     if (isinstance(simulated, pd.DataFrame)):
@@ -302,7 +302,7 @@ def mae(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
         Station 1  0.3760
         Station 2  0.3398
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """
     if (isinstance(simulated, pd.DataFrame)):
@@ -390,7 +390,7 @@ def nse(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
         Station 1  -0.9713
         Station 2  0.01669
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """       
     if (isinstance(simulated, pd.DataFrame)):
@@ -479,7 +479,7 @@ def lognse(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFr
         Station 1  -0.4923
         Station 2  -0.4228
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """       
     if (isinstance(simulated, pd.DataFrame)):
@@ -572,7 +572,7 @@ def kge(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
         Station 1  -0.02108
         Station 2  -0.4929
     
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """
     if isinstance(simulated, pd.DataFrame):
@@ -680,7 +680,7 @@ def kge_2012(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.Data
         Station 1  -0.0210
         Station 2  0.48940
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """
     if isinstance(simulated, pd.DataFrame):
@@ -779,7 +779,7 @@ def bias(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFram
         Station 1  -22.92
         Station 2  3.873
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """    
     if isinstance(simulated, pd.DataFrame):
@@ -877,7 +877,7 @@ def time_to_peak(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)-
         Station 1   171.0
         Station 2   177.0  
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_ 
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_ 
     
     """
 
@@ -1010,7 +1010,7 @@ def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bo
         Station 1   185.0
         Station 2   166.0
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """
     if isinstance(df.columns, pd.MultiIndex):
@@ -1140,7 +1140,7 @@ def SpringPulseOnset(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=Fal
     >>> print(spod)
         [136, 143]
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
 
     """
     if not stations:
@@ -1323,7 +1323,7 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
         Station 1	1299.000	36.050	209200.0	0.51660	  -0.51660	-0.25110	0.25110	0.50940	-0.50940	0.56060	34.160	34.160	157.0	NaN	113.0	171.0	185.0	128.0
         Station 2	780.600	    27.940	29480.0	    -1.67500   1.67500	-0.16920	0.16920	-0.11130	0.11130	0.08006	-11.500	11.500	157.0	NaN	NaN	177.0	166.0	115.0
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
             
     """
     if isinstance(simulated, pd.DataFrame):
@@ -1441,7 +1441,7 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
     >>> print(metrics.calculate_metrics(observed=DATAFRAMES["DF_OBSERVED"], simulated=DATAFRAMES["DF_SIMULATED"], metrices=list_of_metrics))
         {'MSE': [1890, 665.9], 'NSE': [0.09948, -3.583], 'KGE 2012': [0.3130, -0.1483]} 
 
-    `JUPYTER NOTEBOOK Examples <https://github.com/UchechukwuUdenze/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/tutorial-metrics.ipynb>`_
                
     """
     # validate inputs
