@@ -64,6 +64,8 @@ Multimodel Analysis
 .. toctree::
    :maxdepth: 1
 
+   notebooks/Multimodel_Analysis.ipynb
+If you have any comments, please reach out to Fuad Yassin at fuad.yassin@ec.gc.ca or Fuad Yassin at fuad.yassin@usask.ca.
    notebooks/Multi-Model-Analysis.ipynb
 
 This section provides a comprehensive guide to performing a multimodel analysis using the `postprocessinglib` library.
