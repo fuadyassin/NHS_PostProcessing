@@ -65,7 +65,7 @@ Multimodel Analysis
    :maxdepth: 1
 
    notebooks/Multimodel_Analysis.ipynb
-If you have any comments, please reach out to Fuad Yassin at fuad.yassin@ec.gc.ca or Fuad Yassin at fuad.yassin@usask.ca.
+If you have any comments, please reach out to Fuad Yassin at fuad.yassin@ec.gc.ca
    notebooks/Multi-Model-Analysis.ipynb
 
 This section provides a comprehensive guide to performing a multimodel analysis using the `postprocessinglib` library.
@@ -84,4 +84,4 @@ This section provides a comprehensive guide to performing a forecast analysis us
 The analysis focuses on evaluating the performance of forecasted streamflow data across multiple stations and periods.
 
 
-If you have any comments, please reach out to Fuad Yassin at fuad.yassin@ec.gc.ca or Fuad Yassin at fuad.yassin@ec.gc.ca.
+If you have any comments, please reach out to Fuad Yassin at fuad.yassin@ec.gc.ca
