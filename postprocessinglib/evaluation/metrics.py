@@ -1072,7 +1072,8 @@ def QPEAK(df: pd.DataFrame, stations: list[int]=[], use_jday: bool = False) -> p
             results[station] = hlp.sig_figs(avg_qpk, 4)
 
     df_out = pd.DataFrame.from_dict(results, orient='index', columns=['qpeak'])
-    df_out.index = [f"Station {i}" for i in df_out.index.str.extract('(\d+)').astype(int)[0]]
+    #df_out.index = [f"Station {i}" for i in df_out.index.str.extract('(\d+)').astype(int)[0]]
+    df_out.index = [f"Station {i}" for i in df_out.index.str.extract(r"(\d+)").astype(int)[0]]
     df_out.index.name = "Station"
     return df_out
 
