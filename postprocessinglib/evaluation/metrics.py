@@ -1001,6 +1001,80 @@ def time_to_peak(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)-
 
     return pd.DataFrame.from_dict(results, orient='index', columns=['ttp'])
 
+def QPEAK(df: pd.DataFrame, stations: list[int]=[], use_jday: bool = False) -> pd.DataFrame:
+    """Peak discharge value corresponding to the same peak timing logic used by time_to_peak (TTP).
+
+    - use_jday=True: assumes fixed 366-day blocks (or a single 366-day climatology). For each block,
+      QPEAK = max discharge in that block; returns average across blocks.
+    - use_jday=False: assumes datetime index; for each year, QPEAK = annual max discharge; returns
+      average across years.
+    """
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    if not stations:
+        stations = df.columns.tolist()
+
+    results = {}
+
+    if use_jday:
+        n = df.shape[0]
+        days_per_year = 366
+
+        for station in stations:
+            data = df[station].values
+            qsum = 0.0
+            ycount = 0
+
+            for i in range(0, n, days_per_year):
+                j = i + days_per_year
+                if j > n:
+                    break
+
+                year_chunk = data[i:j]
+                if np.nansum(year_chunk) > 0.0 and (j - i) > 200:
+                    qpk = np.nanmax(year_chunk)
+                    if np.isfinite(qpk):
+                        qsum += float(qpk)
+                        ycount += 1
+
+            avg_qpk = qsum / ycount if ycount > 0 else np.nan
+            results[station] = hlp.sig_figs(avg_qpk, 4)
+
+    else:
+        last_year = df.index[-1].year
+        for station in stations:
+            station_data = df[station]
+            year = df.index[0].year
+            start = 0
+            yearly_peaks = []
+
+            while year < last_year:
+                num_days = 366 if hlp.is_leap_year(year) else 365
+                valid_days = np.sum(
+                    np.fromiter(
+                        (df.index[i].year == year for i in range(start, min(start + num_days, len(df.index)))),
+                        int
+                    )
+                )
+
+                if valid_days > 200:
+                    data = station_data.iloc[start:start + valid_days]
+                    if np.nansum(data.values) > 0:
+                        qpk = np.nanmax(data.values)
+                        if np.isfinite(qpk):
+                            yearly_peaks.append(float(qpk))
+
+                start += valid_days
+                year += 1
+
+            avg_qpk = np.mean(yearly_peaks) if yearly_peaks else np.nan
+            results[station] = hlp.sig_figs(avg_qpk, 4)
+
+    df_out = pd.DataFrame.from_dict(results, orient='index', columns=['qpeak'])
+    df_out.index = [f"Station {i}" for i in df_out.index.str.extract('(\d+)').astype(int)[0]]
+    df_out.index.name = "Station"
+    return df_out
 
 def time_to_centre_of_mass(df: pd.DataFrame, stations: list[int]=[], use_jday:bool=False)->float:
     """ Calculates the time it takes to obtain 50% of the stream flow in a given year
@@ -1591,11 +1665,13 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
         "ttcom_obs": lambda: time_to_centre_of_mass(observed, stations),
         "spod_obs": lambda: SpringPulseOnset(observed, stations),
         "fdc_obs": lambda: slope_fdc(observed, stations),
+        "qpeak_obs": lambda: QPEAK(observed, stations),
 
         "ttp_sim": lambda sim: time_to_peak(sim, stations),
         "ttcom_sim": lambda sim: time_to_centre_of_mass(sim, stations),
         "spod_sim": lambda sim: SpringPulseOnset(sim, stations),
         "fdc_sim": lambda sim: slope_fdc(sim, stations),
+        "qpeak_sim": lambda sim: QPEAK(sim, stations),
     }
 
     metric_dfs = []
@@ -1638,13 +1714,13 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
                     )
                     metric_dfs.append(df)
 
-        elif metric_lower in ["ttp_obs", "ttcom_obs", "spod_obs", "fdc_obs"]:
+        elif metric_lower in ["ttp_obs", "ttcom_obs", "spod_obs", "fdc_obs", "qpeak_obs"]:
             result = single_input_metrics[metric_lower]()
             df = result.copy()
             df.columns = pd.MultiIndex.from_product([[metric.upper()], result.columns])
             metric_dfs.append(df)
 
-        elif metric_lower in ["ttp_sim", "ttcom_sim", "spod_sim", "fdc_sim"]:
+        elif metric_lower in ["ttp_sim", "ttcom_sim", "spod_sim", "fdc_sim", "qpeak_sim"]:
             for idx, sim in enumerate(simulated):
                 result = single_input_metrics[metric_lower](sim)
                 model_name = f"model{idx+1}"
