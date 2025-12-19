@@ -1051,7 +1051,7 @@ def bounded_plot(
                 )
 
             # Add single metrics calculation if requested
-            possible_metrices = ["SPOD", "TTP", "TTCOM"]
+            possible_metrices = ["SPOD", "TTP", "TTCOM", "QPEAK", "VOLUME"]
             if metrices is not None:
                 if not isinstance(metrices, list):
                     raise TypeError("Metrices must be a list.")
@@ -1064,6 +1064,8 @@ def bounded_plot(
                     "SPOD": metrics.SpringPulseOnset,
                     "TTP": metrics.time_to_peak,
                     "TTCOM": metrics.time_to_centre_of_mass,
+                    "QPEAK": metrics.QPEAK,
+                    "VOLUME": calculate_volume,
                 }
 
                 # Calculate and format metric values
