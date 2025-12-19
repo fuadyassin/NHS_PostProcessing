@@ -31,6 +31,54 @@ from postprocessinglib.utilities import _helper_functions as hlp
 import re
 from ast import literal_eval
 
+##### temporary fix to calculate volume should go to metrics 
+def calculate_volume(flow_df: pd.Series, use_jday = False) -> float:
+    """
+    Calculate the volume under the flow curve using the trapezoidal rule.
+
+    Parameters
+    ----------
+    flow_series : pd.Series
+        DataFrame where each column is a timeseries of streamflow values in m³/s.
+        Index must be datetime-like or day-of-year (1–366) if use_jday is True.
+
+        use_jday : bool, optional
+        If True, treats the index as day-of-year (1–366).
+        Assumes evenly spaced 24-hour intervals.
+
+    Returns
+    -------
+    float
+        Total volume in cubic meters (m³).
+    """
+    volume_dict = {}
+
+    for col in flow_df.columns:
+        series = flow_df[col].dropna()
+
+        if series.empty:
+            volume_dict[col] = np.nan
+            continue
+
+        flow = series.values
+
+        if use_jday:
+            dt_seconds = 86400  # Assume constant 1-day intervals
+            vol = np.sum(flow) * dt_seconds
+        else:
+            idx = series.index
+
+            if not pd.api.types.is_datetime64_any_dtype(idx):
+                raise ValueError(f"Column {col} index must be datetime-like or use_jday=True.")
+
+            # Convert datetime index to seconds between points
+            dt_seconds = np.diff(idx.astype('int64')) / 1e9  # from nanoseconds to seconds
+            vol = np.sum(flow) * dt_seconds
+
+        volume_dict[col] = hlp.sig_figs(vol, 4)  # Keep formatting consistent
+
+    return pd.DataFrame([volume_dict])
+  
 def _clean_color_tuple_str(s: str) -> str:
     """
     Convert strings like '(np.float64(0.1), numpy.float64(0.2), 0.3, 1.0)'
