@@ -107,6 +107,10 @@ def is_leap_year(year: int) -> bool:
     False
 
     """
+    if year % 400 == 0:
+        return True
+    if year % 100 == 0:
+        return False
     if year % 4 == 0:
         return True
     return False
@@ -183,7 +187,7 @@ def MultiIndex_to_datetime(index: tuple) -> str:
     jday = str(index[1])
      
     # adjusting day num
-    jday.rjust(3 + len(jday), '0')
+    jday = jday.rjust(3, '0')
      
     # converting to date
     res = datetime.strptime(year + "-" + jday, "%Y-%j").strftime("%Y-%m-%d")
@@ -383,7 +387,7 @@ def filter_valid_data(df: pd.DataFrame, station_num: int = 0, station: str = "")
 
     """
 
-    if not station and station_num < 0 and station_num >= df.shape[1] :
+    if not station and (station_num < 0 or station_num >= df.shape[1]):
         raise ValueError("You must have either a valid station number or station name")                                                                            
     
     # Replaces infinities with zeros
