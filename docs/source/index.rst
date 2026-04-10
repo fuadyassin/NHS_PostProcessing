@@ -18,8 +18,11 @@ measured and predicted time series data. Its is divided into 5 broad sections:
   :alt: Sections of the Library. 
 
 - Data processing/manipulation
-   The sections allows us to take in the raw data/raw model output, process it, aggregate it, and generate the data that is required as inputs to the
-   rest of the library.  Its functions are available in the `Data <https://nhs-postprocessing.readthedocs.io/en/stable/Data.html>`_ section. It also has
+   The section allows us to take in raw data or raw model output, process it, aggregate it, and generate the data required as inputs to the
+   rest of the library. It supports two ingestion paths: reading from a pre-built ``MESH_output_streamflow.csv`` via
+   :func:`~postprocessinglib.evaluation.data.generate_dataframes`, or loading directly from MESH NetCDF outputs and a ``.tb0`` observed file via
+   :func:`~postprocessinglib.evaluation.data.generate_dataframes_from_mesh` — no intermediate CSV required.
+   Its functions are available in the `Data <https://nhs-postprocessing.readthedocs.io/en/stable/Data.html>`_ section. It also has
    a runnable **binder** script located `here <https://mybinder.org/v2/gh/fuadyassin/NHS_PostProcessing/main?%2FHEAD=&urlpath=%2Fdoc%2Ftree%2Fdocs%2Fsource%2Fnotebooks%2Ftutorial-data-manipulation.ipynb>`_
 
 - Model Perfromance
