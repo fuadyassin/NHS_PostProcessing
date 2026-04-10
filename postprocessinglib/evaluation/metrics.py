@@ -1430,11 +1430,14 @@ def calculate_all_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame,
     out: str
             used in tandem with the 'format' parameter to specify the name of the output file.
             it is 'metrics_out.{format}' by default
-    metric_options example:
-      {
-        "KGE": {"return_kge_components": True},
-        "KGE 2012": {"return_kge_components": True}
-      }
+    metric_options : dict | None
+        Per-metric keyword options passed to each metric function.
+        For example::
+
+            {
+                "KGE": {"return_kge_components": True},
+                "KGE 2012": {"return_kge_components": True},
+            }
 
     Returns
     -------
@@ -1605,11 +1608,13 @@ def calculate_metrics(observed: pd.DataFrame, simulated: Union[pd.DataFrame, Lis
             used in tandem with the 'format' parameter to specify the name of the output file.
             it is 'metrics_out.{format}' by default
     metric_options : dict | None
-        Per-metric options, e.g.:
-        {
-          "KGE": {"return_kge_components": True},
-          "KGE 2012": {"return_kge_components": True}
-        }
+        Per-metric keyword options passed to each metric function.
+        For example::
+
+            {
+                "KGE": {"return_kge_components": True},
+                "KGE 2012": {"return_kge_components": True},
+            }
 
     Returns
     -------

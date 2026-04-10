@@ -40,7 +40,7 @@ assimilated observations as being used "nudge" or "course correct" the
 forecasts. We have "model world" coordinates for 603 WSC stations whose obs are
 assimilated by the model. In theory, we can query for forecasts for gauge 
 stations whose data is not assimilated (i.e. they don't have model world 
-coordinates), but this is more complicated. **Note from Natalie: I have scripts
+coordinates), but this is more complicated. **Note from Natalie:** I have scripts
 to do this, but I've ommited the code here for simplicity and because I need to
 verify the results - happy to provide this code further into the pilot, if it's
 needed.
@@ -49,30 +49,33 @@ Program runtime is a significant issue when querying for forecasts for more
 than a few dozen stations. I've tried several strategies for speeding things up
 so I'm detailing them here for future reference. Before that, some notes about
 querying the Web Coverage Service:
-    - A query must be made for each forecast timestep. For a 6-day DHPS 
-    forecast, there are timesteps at an hourly interval, so a single forecast 
-    has 144 timesteps in total.
-    - Queries to the WCS can be made for the whole grid, or for a subset of the
-    grid.
-    - In general, there are two strategies for querying the WCS for forecasts
-    at gauge stations:
-        1. Query the whole grid for each forecast timestep and then extract
-        streamflow at gauge stations after.
-        2. Query a small subset of the grid containing one station. Do this for
-        each station for each forecast timestep.
-        3. Query for larger subsets of the grid and extract streamflow at 
-        several gauge stations in that subset after. Do this until forecasts
-        for all stations have been extracted.
-    - Unfortunately, methods 1 and 2 described above have approximately the 
-    same runtime. Method 2 might be slightly faster (90 mins to 2 hours to 
-    query for all 603 gauge stations). I did not try method 3.
+
+- A query must be made for each forecast timestep. For a 6-day DHPS
+  forecast, there are timesteps at an hourly interval, so a single
+  forecast has 144 timesteps in total.
+- Queries to the WCS can be made for the whole grid, or for a subset
+  of the grid.
+- In general, there are two strategies for querying the WCS for
+  forecasts at gauge stations:
+
+  1. Query the whole grid for each forecast timestep and then extract
+     streamflow at gauge stations after.
+  2. Query a small subset of the grid containing one station. Do this
+     for each station for each forecast timestep.
+  3. Query for larger subsets of the grid and extract streamflow at
+     several gauge stations in that subset after. Do this until
+     forecasts for all stations have been extracted.
+
+- Unfortunately, methods 1 and 2 described above have approximately
+  the same runtime. Method 2 might be slightly faster (90 mins to 2
+  hours to query for all 603 gauge stations). I did not try method 3.
      
 Things I tried for method 2:
 
 A. Adding threading
     This works well when a thread pool is used to asynchronously query for 
     forecast timesteps. Forecasts for each stations are queried in serial. 
-    **This is the method I use in this script.
+    **This is the method I use in this script.**
 B. Adding multiprocessing with the threading from method `A`
     I tried adding a process pool to asynchronously submit queries for
     stations, rather than querying stations in serial. This was definitely 
@@ -341,16 +344,16 @@ def stns_on_grid(
     Returns
     -------
     pd.DataFrame
-        Tabulated gauge station coordinates. DataFrame has the format:
+        Tabulated gauge station coordinates. DataFrame has the format::
 
-        ---------------------------------
-        | id      |   lat   |    lon    |
-        ---------------------------------
-        | 05AC012 | 50.1714 | -112.7203 |
-        | ...     |   ...   |    ...    |
-        ---------------------------------
-        
-        ** DataFrame index = `id`
+            ---------------------------------
+            | id      |   lat   |    lon    |
+            ---------------------------------
+            | 05AC012 | 50.1714 | -112.7203 |
+            | ...     |   ...   |    ...    |
+            ---------------------------------
+
+        DataFrame index = ``id``
 
     list[str]
         A list of station IDs corresponding to the rows in the DataFrame.
@@ -449,16 +452,16 @@ def generate_nsrps(
     Returns
     -------
     pd.DataFrame
-        Tabulated forecasts at gauge stations. DataFrame has the format:
+        Tabulated forecasts at gauge stations. DataFrame has the format::
 
-        ----------------------------------------------------------------
-        | time                |   00XX001   |   00XX002   |   ......   |
-        ----------------------------------------------------------------
-        | YYYY-MM-DD HH:mm:ss |     xxxx    |     xxxx    |    ...     |
-        | ...                 |     ....    |     ....    |    ...     |
-        ----------------------------------------------------------------
-        
-        ** DataFrame index = `time` (in UTC)
+            ----------------------------------------------------------------
+            | time                |   00XX001   |   00XX002   |   ......   |
+            ----------------------------------------------------------------
+            | YYYY-MM-DD HH:mm:ss |     xxxx    |     xxxx    |    ...     |
+            | ...                 |     ....    |     ....    |    ...     |
+            ----------------------------------------------------------------
+
+        DataFrame index = ``time`` (in UTC)
     """
 
     # read authentication info from config file
