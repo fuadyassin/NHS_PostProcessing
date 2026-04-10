@@ -1273,3 +1273,393 @@ def generate_dataframes(csv_fpaths: list=None, sim_fpaths: list = None, obs_fpat
         DATAFRAMES["DF_STATS"] = final_df
 
     return DATAFRAMES
+
+
+def generate_dataframes_from_mesh(
+    input_stations_comids: str,
+    input_obs: str,
+    input_ddb: str,
+    mesh_flow,
+    warm_up: int = 0,
+    start_date: str = "",
+    end_date: str = "",
+    daily_agg: bool = False, da_method: str = "",
+    weekly_agg: bool = False, wa_method: str = "",
+    monthly_agg: bool = False, ma_method: str = "",
+    yearly_agg: bool = False, ya_method: str = "",
+    seasonal_p: bool = False, sp_dperiod: tuple = [],
+    sp_subset: tuple = None,
+    long_term: bool = False, lt_method=None,
+    stat_agg: bool = False, stat_method: str = None,
+    keep_stations: list = None,
+    drop_stations: list = None,
+    nc_flow_var: str = "QO",
+    missing_val: float = -1.0,
+) -> dict:
+    """
+    Generate the required dataframes directly from MESH NetCDF outputs and a
+    .tb0 observed streamflow file, bypassing the need to write an intermediate
+    MESH_output_streamflow.csv.
+
+    The returned dictionary has the same structure as ``generate_dataframes``,
+    so all downstream metrics and visualisation functions work identically.
+
+    Parameters
+    ----------
+    input_stations_comids : str
+        Path to the GeoPackage (points layer) that maps each gauge station
+        (column ``Obs_NM``) to its drainage-network COMID and source agency
+        (column ``SRC_obs`` – stations with ``SRC_obs == "USGS"`` are sorted
+        after non-USGS stations, matching the column order in the .tb0 file
+        produced by ``GenStreamflowAsync``).
+    input_obs : str
+        Path to the observed streamflow file in EnSim .tb0 format.
+    input_ddb : str
+        Path to the MESH drainage-database NetCDF containing the ``subbasin``
+        variable (integer COMID for every routed segment).
+    mesh_flow : str or list of str
+        Path(s) to one or more MESH simulated-flow NetCDF files. Each file
+        must contain a 2-D variable ``<nc_flow_var>`` with dimensions
+        ``(time, subbasin)`` (e.g. ``QO_D_GRD.nc``). Pass a list to compare
+        multiple model runs.
+    warm_up : int, optional
+        Number of leading days to discard (spin-up period). Default 0.
+    start_date : str, optional
+        Earliest date to keep (``"YYYY-MM-DD"``). Applied after warm-up.
+    end_date : str, optional
+        Latest date to keep (``"YYYY-MM-DD"``). Applied after warm-up.
+    daily_agg, da_method : bool, str
+        If True, compute daily aggregate using *da_method*.
+    weekly_agg, wa_method : bool, str
+        If True, compute weekly aggregate using *wa_method*.
+    monthly_agg, ma_method : bool, str
+        If True, compute monthly aggregate using *ma_method*.
+    yearly_agg, ya_method : bool, str
+        If True, compute yearly aggregate using *ya_method*.
+    seasonal_p, sp_dperiod, sp_subset : bool, tuple, tuple
+        Seasonal-period filtering (same semantics as ``generate_dataframes``).
+    long_term, lt_method : bool, list
+        Long-term seasonal aggregation (same as ``generate_dataframes``).
+    stat_agg, stat_method : bool, str
+        Cross-simulation statistic aggregation.
+    keep_stations : list of str, optional
+        Station IDs (``Obs_NM`` values) to keep; all others are dropped.
+        Mutually exclusive with *drop_stations*.
+    drop_stations : list of str, optional
+        Station IDs to drop. Mutually exclusive with *keep_stations*.
+    nc_flow_var : str, optional
+        Name of the streamflow variable inside the MESH NetCDF. Default ``"QO"``.
+    missing_val : float, optional
+        Sentinel value for missing data in the .tb0 file. Default ``-1.0``.
+
+    Returns
+    -------
+    dict[str, pd.DataFrame]
+        Same dictionary structure as ``generate_dataframes``:
+
+        * ``"DF"`` – flat merged DataFrame (single mesh_flow).
+        * ``"DF_1"``, ``"DF_2"``, … – flat merged DataFrames per run
+          (multiple mesh_flow files).
+        * ``"DF_OBSERVED"`` – observed-only DataFrame.
+        * ``"DF_SIMULATED"`` – simulated-only DataFrame (single run).
+        * ``"DF_SIMULATED_1"``, … – per-run simulated DataFrames.
+        * ``"DF_MERGED"`` – MultiIndex-column merged DataFrame.
+        * Optional aggregation keys (``"DF_DAILY"``, ``"DF_MONTHLY"``,
+          ``"LONG_TERM_MIN"``, etc.) when requested.
+
+    Examples
+    --------
+    Single model run:
+
+    >>> from postprocessinglib.evaluation import data, metrics
+    >>> DATAFRAMES = data.generate_dataframes_from_mesh(
+    ...     input_stations_comids="combined_discharge_stations_comids.gpkg",
+    ...     input_obs="MESH_input_streamflow_latlon.tb0",
+    ...     input_ddb="MESH_drainage_database.nc",
+    ...     mesh_flow="QO_D_GRD.nc",
+    ...     warm_up=365,
+    ... )
+    >>> results = metrics.calculate_all_metrics(
+    ...     observed=DATAFRAMES["DF_OBSERVED"],
+    ...     simulated=DATAFRAMES["DF_SIMULATED"],
+    ... )
+
+    Multiple model runs:
+
+    >>> DATAFRAMES = data.generate_dataframes_from_mesh(
+    ...     input_stations_comids="combined_discharge_stations_comids.gpkg",
+    ...     input_obs="MESH_input_streamflow_latlon.tb0",
+    ...     input_ddb="MESH_drainage_database.nc",
+    ...     mesh_flow=["run1/QO_D_GRD.nc", "run2/QO_D_GRD.nc"],
+    ...     warm_up=365,
+    ... )
+    >>> results = metrics.calculate_all_metrics(
+    ...     observed=DATAFRAMES["DF_OBSERVED"],
+    ...     simulated=DATAFRAMES["DF_SIMULATED_1"],
+    ... )
+
+    `JUPYTER NOTEBOOK Examples <https://github.com/fuadyassin/NHS_PostProcessing/tree/main/docs/source/notebooks/>`_
+
+    """
+    try:
+        import xarray as xr
+        import geopandas as gpd
+    except ImportError as exc:
+        raise ImportError(
+            "generate_dataframes_from_mesh requires 'xarray' and 'geopandas'. "
+            f"Install them with: pip install xarray geopandas\n{exc}"
+        ) from exc
+
+    from datetime import datetime as _dt
+
+    # ------------------------------------------------------------------
+    # 1. Read drainage database – segid maps array position → COMID
+    # ------------------------------------------------------------------
+    with xr.open_dataset(input_ddb) as db:
+        segid = db["subbasin"].values
+
+    # ------------------------------------------------------------------
+    # 2. Build station list and COMID lookup from GeoPackage
+    #    Non-USGS stations first, then USGS – must match .tb0 column order
+    # ------------------------------------------------------------------
+    stations_gdf = gpd.read_file(input_stations_comids, layer="points")
+    stations_gdf["Obs_NM"] = stations_gdf["Obs_NM"].astype(str)
+
+    ca_ids = sorted(stations_gdf.loc[stations_gdf["SRC_obs"] != "USGS", "Obs_NM"].tolist())
+    us_ids = sorted(stations_gdf.loc[stations_gdf["SRC_obs"] == "USGS", "Obs_NM"].tolist())
+    all_station_ids = ca_ids + us_ids  # full order matching .tb0 columns
+
+    # Apply station keep/drop filter
+    if keep_stations is not None and drop_stations is not None:
+        raise ValueError("Provide only keep_stations or drop_stations, not both.")
+    if keep_stations is not None:
+        keep_set = set(map(str, keep_stations))
+        station_ids = [s for s in all_station_ids if s in keep_set]
+    elif drop_stations is not None:
+        drop_set = set(map(str, drop_stations))
+        station_ids = [s for s in all_station_ids if s not in drop_set]
+    else:
+        station_ids = list(all_station_ids)
+
+    if not station_ids:
+        raise ValueError("No stations remaining after applying keep/drop filters.")
+
+    station_comids = [
+        stations_gdf.loc[stations_gdf["Obs_NM"] == s, "COMID"].values[0]
+        for s in station_ids
+    ]
+
+    missing_comids = [
+        (s, c) for s, c in zip(station_ids, station_comids)
+        if not np.any(segid == c)
+    ]
+    if missing_comids:
+        for s, c in missing_comids:
+            print(f"Warning: Station {s} (COMID {c}) not found in drainage database – filling with NaN.")
+
+    # ------------------------------------------------------------------
+    # 3. Parse .tb0 header: find :StartTime and count header rows
+    # ------------------------------------------------------------------
+    header_lines = []
+    with open(input_obs, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            header_lines.append(line)
+            if line.strip().lower() == ":endheader":
+                break
+
+    skiprows = len(header_lines)
+
+    start_token = next(
+        (ln for ln in header_lines if ln.strip().lower().startswith(":starttime")),
+        None,
+    )
+    if start_token is None:
+        raise ValueError("Could not find ':StartTime' in .tb0 file header.")
+
+    obs_start = _dt.strptime(" ".join(start_token.split()[1:]), "%Y/%m/%d %H:%M:%S.%f")
+
+    # ------------------------------------------------------------------
+    # 4. Read observed flow values from .tb0
+    # ------------------------------------------------------------------
+    raw_obs = pd.read_csv(
+        input_obs, delim_whitespace=True, skiprows=skiprows,
+        header=None, dtype=float,
+    )
+
+    if raw_obs.shape[1] != len(all_station_ids):
+        raise ValueError(
+            f".tb0 file has {raw_obs.shape[1]} data columns but "
+            f"{len(all_station_ids)} stations were found in the GeoPackage. "
+            "Ensure the GeoPackage and .tb0 file were generated together."
+        )
+
+    raw_obs.columns = [f"QOMEAS_{s}" for s in all_station_ids]
+    raw_obs.index = pd.date_range(start=obs_start, periods=len(raw_obs), freq="D")
+    raw_obs.replace([missing_val, -1, 0], np.nan, inplace=True)
+
+    obs_df = raw_obs[[f"QOMEAS_{s}" for s in station_ids]]
+
+    # ------------------------------------------------------------------
+    # 5. Read simulated flow from each MESH NetCDF
+    # ------------------------------------------------------------------
+    if isinstance(mesh_flow, str):
+        mesh_flow_paths = [mesh_flow]
+    else:
+        mesh_flow_paths = list(mesh_flow)
+
+    sim_dfs = []
+    for nc_path in mesh_flow_paths:
+        with xr.open_dataset(nc_path) as ds:
+            flow = ds[nc_flow_var].values          # shape: (time, subbasin)
+            sim_start = pd.to_datetime(str(ds.time.values[0])).normalize()
+
+        sim_data = {}
+        for s, comid in zip(station_ids, station_comids):
+            idx = np.where(segid == comid)[0]
+            sim_data[f"QOSIM_{s}"] = (
+                flow[:, idx[0]] if len(idx) > 0 else np.full(flow.shape[0], np.nan)
+            )
+
+        sim_df = pd.DataFrame(sim_data)
+        sim_df.index = pd.date_range(start=sim_start, periods=len(sim_df), freq="D")
+        sim_dfs.append(sim_df)
+
+    # ------------------------------------------------------------------
+    # 6. Align obs and all sim DataFrames to their common overlapping period
+    # ------------------------------------------------------------------
+    common_start = max([obs_df.index.min()] + [s.index.min() for s in sim_dfs])
+    common_end   = min([obs_df.index.max()] + [s.index.max() for s in sim_dfs])
+
+    if common_start > common_end:
+        raise ValueError(
+            "Observed and simulated time series have no overlapping period."
+        )
+
+    obs_aligned     = obs_df.loc[common_start:common_end]
+    sim_dfs_aligned = [s.loc[common_start:common_end] for s in sim_dfs]
+
+    # ------------------------------------------------------------------
+    # 7. Apply warm-up
+    # ------------------------------------------------------------------
+    obs_aligned     = obs_aligned.iloc[warm_up:]
+    sim_dfs_aligned = [s.iloc[warm_up:] for s in sim_dfs_aligned]
+
+    # ------------------------------------------------------------------
+    # 8. Build DATAFRAMES dict  (mirrors generate_dataframes structure)
+    # ------------------------------------------------------------------
+    DATAFRAMES = {}
+    n_runs = len(mesh_flow_paths)
+
+    # Flat merged DataFrames: QOMEAS_s, QOSIM_s interleaved, one per run
+    for i, sim_df in enumerate(sim_dfs_aligned):
+        cols = []
+        for s in station_ids:
+            cols.append(obs_aligned[f"QOMEAS_{s}"])
+            cols.append(sim_df[f"QOSIM_{s}"])
+        flat = pd.concat(cols, axis=1)
+        key = "DF" if n_runs == 1 else f"DF_{i + 1}"
+        DATAFRAMES[key] = flat
+
+    DATAFRAMES["DF_OBSERVED"] = obs_aligned
+
+    if n_runs == 1:
+        DATAFRAMES["DF_SIMULATED"] = sim_dfs_aligned[0]
+    else:
+        for i, sim_df in enumerate(sim_dfs_aligned):
+            DATAFRAMES[f"DF_SIMULATED_{i + 1}"] = sim_df
+
+    # DF_MERGED uses MultiIndex columns (station, QOMEAS / QOSIM…)
+    merged = pd.DataFrame(index=obs_aligned.index)
+    for j in range(obs_aligned.shape[1]):
+        merged = pd.concat(
+            [merged, obs_aligned.iloc[:, [j]]] +
+            [sim.iloc[:, [j]] for sim in sim_dfs_aligned],
+            axis=1,
+        )
+    merged.columns = hlp.columns_to_MultiIndex(merged.columns)
+    DATAFRAMES["DF_MERGED"] = merged
+
+    # ------------------------------------------------------------------
+    # 9. Date range filtering
+    # ------------------------------------------------------------------
+    if start_date or end_date:
+        slice_ = slice(start_date or None, end_date or None)
+        for key in list(DATAFRAMES.keys()):
+            DATAFRAMES[key] = DATAFRAMES[key].loc[slice_]
+
+    print(f"The start date for the Data is {DATAFRAMES['DF_MERGED'].index[0].strftime('%Y-%m-%d')}")
+
+    # ------------------------------------------------------------------
+    # 10. Aggregations (reuse existing module-level functions)
+    # ------------------------------------------------------------------
+    if daily_agg and da_method:
+        DATAFRAMES["DF_DAILY"] = daily_aggregate(df=DATAFRAMES["DF_MERGED"], method=da_method)
+
+    if weekly_agg and wa_method:
+        DATAFRAMES["DF_WEEKLY"] = weekly_aggregate(df=DATAFRAMES["DF_MERGED"], method=wa_method)
+
+    if monthly_agg and ma_method:
+        DATAFRAMES["DF_MONTHLY"] = monthly_aggregate(df=DATAFRAMES["DF_MERGED"], method=ma_method)
+
+    if yearly_agg and ya_method:
+        DATAFRAMES["DF_YEARLY"] = yearly_aggregate(df=DATAFRAMES["DF_MERGED"], method=ya_method)
+
+    if seasonal_p:
+        if not sp_dperiod:
+            raise RuntimeError("You cannot calculate a seasonal period without a daily period")
+        kwargs = dict(df=DATAFRAMES["DF_MERGED"], daily_period=sp_dperiod)
+        if sp_subset:
+            kwargs["subset"] = sp_subset
+        DATAFRAMES["DF_CUSTOM"] = seasonal_period(**kwargs)
+
+    if long_term:
+        DATAFRAMES["LONG_TERM_MIN"]    = long_term_seasonal(df=DATAFRAMES["DF_MERGED"], method="min")
+        DATAFRAMES["LONG_TERM_MAX"]    = long_term_seasonal(df=DATAFRAMES["DF_MERGED"], method="max")
+        DATAFRAMES["LONG_TERM_MEDIAN"] = long_term_seasonal(df=DATAFRAMES["DF_MERGED"], method="median")
+        if lt_method is None:
+            lt_method = []
+        elif isinstance(lt_method, str):
+            lt_method = [lt_method]
+        for method in lt_method:
+            DATAFRAMES[f"LONG_TERM_{method.upper()}"] = long_term_seasonal(
+                df=DATAFRAMES["DF_MERGED"], method=method
+            )
+
+    if stat_agg:
+        if stat_method is None:
+            stat_method = []
+        elif isinstance(stat_method, str):
+            stat_method = [stat_method]
+        elif not isinstance(stat_method, list):
+            raise ValueError("stat_method must be a string or a list of strings.")
+
+        stat_method = ["min", "max", "median"] + stat_method
+        combined_cols = []
+        combined_data = []
+
+        if "DF_STATS" not in DATAFRAMES:
+            DATAFRAMES["DF_STATS"] = stat_aggregate(df=DATAFRAMES["DF_MERGED"], method="median")
+
+        for method in stat_method:
+            temp_df = stat_aggregate(df=DATAFRAMES["DF_MERGED"], method=method)
+            for station in DATAFRAMES["DF_STATS"].columns.get_level_values(0).unique():
+                temp_df_cols = temp_df[station]
+                if isinstance(temp_df_cols, pd.Series):
+                    temp_df_cols = temp_df_cols.to_frame()
+                for col in temp_df_cols.columns:
+                    combined_cols.append((station, col))
+                combined_data.append(temp_df_cols)
+
+        final_df = pd.concat(combined_data, axis=1)
+        final_df.columns = pd.MultiIndex.from_tuples(combined_cols)
+        final_df = final_df.loc[:, ~final_df.columns.duplicated()]
+        sorted_stations = natsorted(final_df.T.index.get_level_values(0).unique())
+        new_blocks = [
+            final_df.T[final_df.T.index.get_level_values(0) == station].T
+            for station in sorted_stations
+        ]
+        final_df = pd.concat(new_blocks, axis=1)
+        final_df.columns = pd.MultiIndex.from_tuples(final_df.columns)
+        DATAFRAMES["DF_STATS"] = final_df
+
+    return DATAFRAMES
