@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "National Hydrologic Services - Post Processing Library (NHS_PostProcessing)"
+version: 1.2.0
+date-released: 2026-05-29
+license: MIT
+repository-code: https://github.com/fuadyassin/NHS_PostProcessing
+url: https://nhs-postprocessing.readthedocs.io/en/latest/
+abstract: >
+  A Python library to enable the National Hydrological Services of Canada to
+  carry out post-processing operations quickly and efficiently. Provides tools
+  for data processing and manipulation, streamflow prediction model performance
+  evaluation, model diagnostics, multi-model evaluations, and data visualizations.
+authors:
+  - family-names: Yassin
+    given-names: Fuad
+    affiliation: Environment and Climate Change Canada
+    email: fuad.yassin@ec.gc.ca
+  - family-names: Udenze
+    given-names: Uchechukwu
+    affiliation: University of Saskatchewan
+    email: Uchechukwu.Udenze@ec.gc.ca
+  - family-names: Princz
+    given-names: Daniel
+    affiliation: Environment and Climate Change Canada
+keywords:
+  - hydrology
+  - post-processing
+  - streamflow
+  - hydrological modelling
+  - model evaluation
+  - python
+  - National Hydrological Services
+  - Canada
+  - diagnostics
+  - visualization
