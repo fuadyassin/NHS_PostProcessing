@@ -1,5 +1,5 @@
 {
-  "title": "National Hydrologic Services - Post Processing Library (NHS_PostProcessing)",
+  "title": "National Hydrological Services - Post Processing Library (NHS_PostProcessing)",
   "version": "1.2.0",
   "description": "A Python library to enable the National Hydrological Services of Canada to carry out post-processing operations quickly and efficiently. Provides tools for data processing and manipulation, streamflow prediction model performance evaluation, model diagnostics, multi-model evaluations, and data visualizations.",
   "license": "MIT",
