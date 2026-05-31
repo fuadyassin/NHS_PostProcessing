@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
-title: "National Hydrologic Services - Post Processing Library (NHS_PostProcessing)"
+title: "National Hydrological Services - Post Processing Library (NHS_PostProcessing)"
 version: 1.2.0
 date-released: 2026-05-29
 license: MIT
