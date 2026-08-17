@@ -58,6 +58,21 @@ Single Model Analysis
 This section provides a comprehensive guide to performing a single model analysis using the `postprocessinglib` library.
 The analysis focuses on evaluating the performance of a single hydrological model across multiple stations and periods.
 
+Annual Streamflow Analysis (Last Station)
+------------------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   notebooks/Annual-Streamflow-LastStation.ipynb
+
+This section follows the same single-model workflow as above but aggregates the daily streamflow record up to the
+**annual level** and focuses the comparison on a single station - the last station in the network. It demonstrates
+the annual-level toolkit in `postprocessinglib`: `data.yearly_aggregate()` for annual mean flow and volume, the full
+`metrics` suite (NSE, LogNSE, RMSE, MAE, BIAS, KGE with components) evaluated on the annual series, and the
+`visuals` plotting functions (`plot`, `scatter`, `histogram`, `qqplot`, `flow_duration_curve`) applied at annual
+resolution.
+
 Multimodel Analysis
 -------------------
 
