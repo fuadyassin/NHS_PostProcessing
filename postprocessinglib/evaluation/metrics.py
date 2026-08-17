@@ -327,7 +327,7 @@ def mae(observed: pd.DataFrame, simulated: Union[pd.DataFrame, List[pd.DataFrame
             sim_values = sim.loc[valid_observed.index].iloc[:, j]
             obs_values = valid_observed.iloc[:, j]
 
-            mae_val = np.mean(np.sum(abs(obs_values - sim_values)))
+            mae_val = np.mean(abs(obs_values - sim_values))
             station_mae[f"model{k+1}"] = hlp.sig_figs(mae_val, 4)
 
         # Store per-station result (station index is 1-based)
